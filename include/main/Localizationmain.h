@@ -63,7 +63,6 @@ class Localization_main : public Drawing
     public:
         bool get_image_data = false;
         bool is_start;
-        bool change_pos_flag;
         int loop_cnt;
         vector<int> loop_cnt_vector;
         vector<Distance> robot_pos_error_data;
@@ -100,6 +99,7 @@ class Localization_main : public Drawing
         int Image_Bottom_Length;
         int Image_Top_Width_Length;
         int Image_Bottom_Width_Length;
+        int Head_position;
         
         float Horizontal_Head_Angle;
 

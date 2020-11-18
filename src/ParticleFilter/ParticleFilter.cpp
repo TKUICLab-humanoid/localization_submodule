@@ -4,7 +4,7 @@ ParticleFilter::ParticleFilter()
 {
     rand_angle_init = 5;
     particlepoint_num = PARTICLNUM;
-    excellent_particle_num = EXCELLENTPARTICLNUM;
+    excellent_particle_num = 20;
 
     Robot_Position.postion.X = -1; //830  700
     Robot_Position.postion.Y = -1; //640  370
@@ -17,20 +17,6 @@ ParticleFilter::ParticleFilter()
     sendbodyauto_y = 0;
 
     step_count = 0;
-
-    //////////////////KLD//////////////////
-    min_particlepoint_num = 50;
-    kld_err = 0.45;             //defalut 0.05
-    kld_z = 0.99;               //defalut 0.99
-    //////////////////KLD//////////////////
-
-    //////////////////Augmented_MCL//////////////////
-    weight_avg = 0.0;       //the average of the weight of particlepoint
-    weight_slow = 0.0;      //the long-term weight of particlepoint
-    weight_fast = 0.0;      //the short-term weight of particlepoint
-    alpha_slow = 0.003;//0.062;
-    alpha_fast = 0.1;//0.1;
-    //////////////////Augmented_MCL//////////////////
 
     localization_flag = true;
     find_best_flag = true;
@@ -65,10 +51,10 @@ void ParticleFilter::ParticlePointinit()
 
 void ParticleFilter::CalcFOVArea(int focus, int top, int bottom, int top_width, int bottom_width, float horizontal_head_angle)
 {
-    ROS_INFO("CalcFOVArea");
+    //ROS_INFO("CalcFOVArea");
     for(int i = 0; i < particlepoint_num; i++)
     {
-        particlepoint[i].FOV_dir = Angle_Adjustment(particlepoint[i].angle + horizontal_head_angle);
+        float FOV_dir = Angle_Adjustment(particlepoint[i].angle + horizontal_head_angle);
 
         //coordinate Camera_Focus;
 
@@ -80,10 +66,10 @@ void ParticleFilter::CalcFOVArea(int focus, int top, int bottom, int top_width, 
         //Camera_Focus.X = particlepoint[i].postion.X + focus * cos(FOV_dir * DEG2RAD);
         //Camera_Focus.Y = particlepoint[i].postion.Y + focus * sin(FOV_dir * DEG2RAD);
 
-        float right_sight_top_angle = Angle_Adjustment(particlepoint[i].FOV_dir - HFOV_2D_top);
-        float right_sight_bottom_angle = Angle_Adjustment(particlepoint[i].FOV_dir - HFOV_2D_bottom);
-        float left_sight_top_angle = Angle_Adjustment(particlepoint[i].FOV_dir + HFOV_2D_top);
-        float left_sight_bottom_angle = Angle_Adjustment(particlepoint[i].FOV_dir + HFOV_2D_bottom);
+        float right_sight_top_angle = Angle_Adjustment(FOV_dir - HFOV_2D_top);
+        float right_sight_bottom_angle = Angle_Adjustment(FOV_dir - HFOV_2D_bottom);
+        float left_sight_top_angle = Angle_Adjustment(FOV_dir + HFOV_2D_top);
+        float left_sight_bottom_angle = Angle_Adjustment(FOV_dir + HFOV_2D_bottom);
         
         float top_waist_length = sqrt(pow(top,2) + pow(top_width,2));
         float bottom_waist_length = sqrt(pow(bottom,2) + pow(bottom_width,2));
@@ -110,7 +96,7 @@ void ParticleFilter::CalcFOVArea(int focus, int top, int bottom, int top_width, 
 
 void ParticleFilter::CalcFOVArea_averagepos(int focus, int top, int bottom, int top_width, int bottom_width, float horizontal_head_angle)
 {
-    Robot_Position.FOV_dir = Angle_Adjustment(Robot_Position.angle + horizontal_head_angle);
+    float FOV_dir = Angle_Adjustment(Robot_Position.angle + horizontal_head_angle);
 
     //coordinate Camera_Focus;
 
@@ -122,10 +108,10 @@ void ParticleFilter::CalcFOVArea_averagepos(int focus, int top, int bottom, int 
     //Camera_Focus.X = Robot_Position.postion.X + focus * cos(FOV_dir * DEG2RAD);
     //Camera_Focus.Y = Robot_Position.postion.Y + focus * sin(FOV_dir * DEG2RAD);
 
-    float right_sight_top_angle = Angle_Adjustment(Robot_Position.FOV_dir - HFOV_2D_top);
-    float right_sight_bottom_angle = Angle_Adjustment(Robot_Position.FOV_dir - HFOV_2D_bottom);
-    float left_sight_top_angle = Angle_Adjustment(Robot_Position.FOV_dir + HFOV_2D_top);
-    float left_sight_bottom_angle = Angle_Adjustment(Robot_Position.FOV_dir + HFOV_2D_bottom);
+    float right_sight_top_angle = Angle_Adjustment(FOV_dir - HFOV_2D_top);
+    float right_sight_bottom_angle = Angle_Adjustment(FOV_dir - HFOV_2D_bottom);
+    float left_sight_top_angle = Angle_Adjustment(FOV_dir + HFOV_2D_top);
+    float left_sight_bottom_angle = Angle_Adjustment(FOV_dir + HFOV_2D_bottom);
         
     float top_waist_length = sqrt(pow(top,2) + pow(top_width,2));
     float bottom_waist_length = sqrt(pow(bottom,2) + pow(bottom_width,2));
@@ -191,7 +177,7 @@ void ParticleFilter::FindFeaturePoint()
             OuterMsg = Top_Right_dis + 10;
         }
         int scan_line_cnt = 0;      //the number of scan_line
-        for (float angle = particlepoint[i].FOV_dir +  - 90.0; angle <= particlepoint[i].FOV_dir + 91.0; angle = angle + 5.0)
+        for (float angle = particlepoint[i].angle - 90.0; angle <= particlepoint[i].angle + 91.0; angle = angle + 5.0)
         {
             bool find_feature_flag = false;
             int angle_be = (int)(Angle_Adjustment(angle));
@@ -203,7 +189,7 @@ void ParticleFilter::FindFeaturePoint()
                 int x = Frame_Area(centerx + x_, Soccer_Filed.cols);
                 int y = Frame_Area(centery - y_, Soccer_Filed.rows);
 
-                if(x == 0 || x == (Soccer_Filed.cols - 1) || y == 0 || y == (Soccer_Filed.rows - 1))
+                if(x == 0 || x == (Soccer_Filed.cols - 1) || y == 0)
                 {
                     if(!find_feature_flag)
                     {
@@ -268,21 +254,18 @@ void ParticleFilter::FindFeaturePoint()
                 }           
             }
         }
+        //tmp.clear();
     }
 }
 
 void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data)
 {
     ROS_INFO("FindBestParticle");
-    float x_avg = 0.0;
-    float y_avg = 0.0;
     for(int i = 0; i < particlepoint_num; i++)
     {
         particlepoint[i].fitness_value = 0;
         particlepoint[i].weight = 0.0;
         int real_feature_point_cnt = 0;
-        x_avg += particlepoint[i].postion.X;
-        y_avg += particlepoint[i].postion.Y;
         for(int j = 0; j < particlepoint[i].featurepoint_scan_line.size(); j++)
         {
             real_feature_point_cnt += (*(feature_point_observation_data + j)).feature_point.size();
@@ -360,80 +343,32 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data)
             }
         }
         particlepoint[i].weight = (float)particlepoint[i].fitness_value / (float)(real_feature_point_cnt * MAP_MAX_LENGTH);
-        weight_avg = weight_avg + particlepoint[i].weight;
     }
-    x_avg = x_avg / (float)particlepoint_num;
-    y_avg = y_avg / (float)particlepoint_num;
-    weight_avg = weight_avg / (float)particlepoint_num;
-    ROS_INFO("weight_avg:%f", weight_avg);
-    weight_slow = weight_slow + alpha_slow * (weight_avg - weight_slow);
-    weight_fast = weight_fast + alpha_fast * (weight_avg - weight_fast);
-    ROS_INFO("weight_slow:%f", weight_slow);
-    ROS_INFO("weight_fast:%f", weight_fast);
-    particlepoint_compare = particlepoint;
-    sort(particlepoint_compare.begin(), particlepoint_compare.end(), greater<ParticlePoint>());
-    FindRobotPosition(x_avg, y_avg);
+    sort(particlepoint.begin(), particlepoint.end(), greater<ParticlePoint>());
     ROS_INFO("weight:%f", particlepoint[0].weight);
-    ROS_INFO("weight_low:%f", particlepoint[particlepoint.size() - 1].weight);
-    ROS_INFO("x:%d", Robot_Position.postion.X);
-    ROS_INFO("y:%d", Robot_Position.postion.Y);
+    ROS_INFO("fitness:%d", particlepoint[0].fitness_value);
+    //ROS_INFO("fitness:%d", particlepoint[1500].fitness_value);
     //-------------判斷適應值太高的狀況就不更新---------
-    if(particlepoint_compare[0].weight < 0.28)
+    if(particlepoint[0].weight < 0.5)
     {
         find_best_flag = false;
+        AverageRobotPos();
     }
     else
     {
         find_best_flag = true;
+        Robot_Position = particlepoint[0];
+        //FindRobotPosition();
+        ROS_INFO("x:%d", Robot_Position.postion.X);
+        ROS_INFO("y:%d", Robot_Position.postion.Y);    
     }
     //-------------判斷適應值太高的狀況就不更新---------
 }
 
-void ParticleFilter::FindRobotPosition(float x_avg, float y_avg)
+void ParticleFilter::FindRobotPosition()
 {
     ROS_INFO("FindRobotPosition");
-    ROS_INFO("x_avg = %f",x_avg);
-    ROS_INFO("y_avg = %f",y_avg);
-    float x_varience = 0.0;
-    float y_varience = 0.0;
-    for(int i = 0; i < particlepoint_num; i++)
-    {
-        float x_ = particlepoint_compare[i].postion.X - x_avg;
-        float y_ = particlepoint_compare[i].postion.Y - y_avg;
-        x_varience = x_varience + pow(x_, 2);
-        y_varience = y_varience + pow(y_, 2);
-    }
-    x_varience = x_varience / (float)particlepoint_num;
-    y_varience = y_varience / (float)particlepoint_num;
-    ROS_INFO("x_varience = %f",x_varience);
-    ROS_INFO("y_varience = %f",y_varience);
-    if((x_varience <= 0.5) && (y_varience <= 0.5))
-    {
-        ROS_INFO("varience is very small");
-        Robot_Position = particlepoint_compare[0];
-        return;
-    }
-    for(int i = 0; i < particlepoint_num; i++)
-    {
-        float x_to_avg_error = particlepoint_compare[i].postion.X - x_avg;
-        float y_to_avg_error = particlepoint_compare[i].postion.Y - y_avg;
-        x_to_avg_error = pow(x_to_avg_error, 2);
-        y_to_avg_error = pow(y_to_avg_error, 2);
-        if((x_to_avg_error < x_varience) && (y_to_avg_error < y_varience))
-        {
-            ROS_INFO("The best number = %d",i);
-            Robot_Position = particlepoint_compare[i];
-            break;
-        }
-        else if(i == (particlepoint_num - 1))
-        {
-            ROS_INFO("No find the best");
-            Robot_Position.postion.X = x_avg;
-            Robot_Position.postion.Y = y_avg;
-            Robot_Position.angle = particlepoint_compare[0].angle;
-        }
-    }
-    /*int x_tmp[particlepoint_num] = {0};
+    int x_tmp[particlepoint_num] = {0};
     int y_tmp[particlepoint_num] = {0};
     float angle_tmp[particlepoint_num] = {0.0};
     for(int i = 0; i < particlepoint_num; i++)
@@ -447,79 +382,114 @@ void ParticleFilter::FindRobotPosition(float x_avg, float y_avg)
     sort(angle_tmp,angle_tmp + particlepoint_num);
     Robot_Position.postion.X = x_tmp[particlepoint_num / 2];
     Robot_Position.postion.Y = y_tmp[particlepoint_num / 2];
-    Robot_Position.angle = angle_tmp[particlepoint_num / 2];*/
+    Robot_Position.angle = angle_tmp[particlepoint_num / 2];
 }
 
-int ParticleFilter::TournamentResample(int excellent_particle_num)
+void ParticleFilter::AverageRobotPos()
 {
-    int tournament_particle_num[excellent_particle_num] = {0};
-    int best_particle_num = 0;
-    float best_weight_value = 0.0;
-
-    for(int i = 0; i < excellent_particle_num; ++i)
+    vector<ParticlePoint>::iterator f_iter;
+    int tmp_x = 0;
+    int tmp_y = 0;
+    int aa = 0;
+    float tmp_angle = 0.0;
+    int rand_angle = rand_angle_init * 2 + 1;
+    ROS_INFO("continuous_x = %d",continuous_x);
+    for (f_iter = particlepoint.begin(); f_iter != particlepoint.end(); ++f_iter)
     {
-        tournament_particle_num[i] = rand()%particlepoint_num;
-        for(int j = 0; j < i; j++)
+        aa++;
+        f_iter->angle = Angle_Adjustment(Robot_Position.angle + rand()%rand_angle - rand_angle_init); 
+        tmp_x += f_iter->postion.X;
+        tmp_y += f_iter->postion.Y;
+        if(Step_flag)
         {
-            if(tournament_particle_num[i] == tournament_particle_num[j])
+            float move_x = 0.0;
+            float move_y = 0.0;
+            float y_dir_angle = 0.0;
+            if(continuous_y > 0)
             {
-                tournament_particle_num[i] = rand()%particlepoint_num;
-                j = -1;
+                float y_dir_angle = Angle_Adjustment(f_iter->angle + 90.0);
+            }
+            else
+            {
+                float y_dir_angle = Angle_Adjustment(f_iter->angle - 90.0);
+            }
+            move_x = cos(f_iter->angle * DEG2RAD) * continuous_x / 1000 + cos(y_dir_angle * DEG2RAD) * continuous_y / 1000;
+            move_y = -(sin(f_iter->angle * DEG2RAD) * continuous_x / 1000 + sin(y_dir_angle * DEG2RAD) * continuous_y / 1000);
+            move_x = 8.5 * move_x;
+            move_y = 8.5 * move_y;
+            if(aa == 1)
+            {
+                ROS_INFO("move_x = %f",move_x);
+                ROS_INFO("move_y = %f",move_y);
+            }
+            if(step_count == 0)
+            {
+                f_iter->postion.X = f_iter->postion.X + (int)(move_x) + (rand() % 11 - 5);
+                f_iter->postion.Y = f_iter->postion.Y + (int)(move_y) + (rand() % 11 - 5);
+                //ROS_INFO("add the step");
+            }
+            else
+            {
+                f_iter->postion.X = f_iter->postion.X + (int)(move_x) * step_count + (rand() % 11 - 5);
+                f_iter->postion.Y = f_iter->postion.Y + (int)(move_y) * step_count + (rand() % 11 - 5);
+                //ROS_INFO("add the step");
+                //step_count = 0;
             }
         }
-        if(particlepoint[tournament_particle_num[i]].weight > best_weight_value)
+        else
         {
-            best_weight_value = particlepoint[tournament_particle_num[i]].weight;
-            best_particle_num = tournament_particle_num[i];
+            f_iter->postion.X = f_iter->postion.X + (int)(cos(f_iter->angle * DEG2RAD) * (rand() % 11 - 5));
+            f_iter->postion.Y = f_iter->postion.Y + (int)(sin(f_iter->angle * DEG2RAD) * (rand() % 11 - 5)); 
+            //f_iter->postion.X = f_iter->postion.X + (rand() % 31 - 15);
+            //f_iter->postion.Y = f_iter->postion.Y + (rand() % 31 - 15);
         }
     }
-    return best_particle_num;
+    ROS_INFO("averageRobotPos");
+    Step_flag = false;
+    Robot_Position.postion.X = tmp_x / particlepoint_num;        	//粒子數量
+    Robot_Position.postion.Y = tmp_y / particlepoint_num;
+    Robot_Position.angle = Angle_Adjustment(Robot_Position.angle + rand()%rand_angle - rand_angle_init);
 }
 
-void ParticleFilter::StatePredict()
+void ParticleFilter::CalcNewParticle()
 {
-    ROS_INFO("StatePredict");
     int rand_angle = rand_angle_init * 2 + 1;
     int value_sum = 0;
     float sum = 0.0;
     int particle_num = 0;
-
+    ROS_INFO("calcNewParticle");
     if(excellent_particle_num > particlepoint_num)
     {
         excellent_particle_num = particlepoint_num;
     }
-    ///////////////////////////Augmented_MCL ///////////////////////////
-    std::random_device rd, x_rd, y_rd;                                          //產生亂數種子                    //Produce the random seed
-    std::mt19937 generator(rd());                                               //使用梅森旋轉演算法產生亂數        //Use Mersenne Twister to produce the random
-    std::mt19937 x_generator(x_rd());
-    std::mt19937 y_generator(y_rd());
-    std::uniform_real_distribution<float> add_random_distribution(0.0, 1.0);    //設定機率分佈範圍（連續型均勻分佈） //Set the random distribution range(continuous)
-    std::uniform_real_distribution<float> x_random_distribution(550, MAP_LENGTH - 105), y_random_distribution(10, MAP_WIDTH - 10);
-    float reset_random_threshold = std::max(0.0, 1.0 - (weight_fast / weight_slow));
-    int rand_particle_cnt = 0;
-    ROS_INFO("reset_random_threshold = %f",reset_random_threshold);
-    ///////////////////////////Augmented_MCL ///////////////////////////
-    vector<ParticlePoint> tmp;
 
-    //ROS_INFO("continuous_x = %d",continuous_x);
-    for(int i = 0; i < particlepoint_num; ++i)
-    { 
-        double random = ((double)rand() / (RAND_MAX));
-        ParticlePoint current_particle;
-        if(random < reset_random_threshold)
-        {
-            ROS_INFO("Kidnapped");
-            find_best_flag = true;
-            current_particle.postion.X = x_random_distribution(x_generator);
-            current_particle.postion.Y = y_random_distribution(y_generator);
-            current_particle.angle = Angle_Adjustment(Robot_Position.angle + rand()%rand_angle - rand_angle_init);
-            tmp.push_back(current_particle);
-        }
-        else
-        {
-            int best_particle_num = TournamentResample(excellent_particle_num);
+    float proportion[excellent_particle_num] = {0.0};
 
-            current_particle.angle = Angle_Adjustment(Robot_Position.angle + rand()%rand_angle - rand_angle_init);
+    for(int i = 0; i < excellent_particle_num; ++i)
+    {
+        value_sum += particlepoint[i].fitness_value;
+    }
+    for(int i = 0; i < excellent_particle_num; ++i)
+    {
+        proportion[i] = (float)(particlepoint[i].fitness_value) / (float)(value_sum);
+        sum += proportion[i];
+    }
+    for(int i = 0; i < excellent_particle_num; ++i)
+    {
+        particlepoint[i].particle_num = (int)(particlepoint_num * proportion[i] / sum);
+        particle_num += particlepoint[i].particle_num;
+    }
+    particlepoint[0].particle_num += particlepoint_num - particle_num;   //將粒子撒滿
+    vector <ParticlePoint> tmp(particlepoint.begin(), particlepoint.end());
+    vector <ParticlePoint>::iterator f_iter = tmp.begin();
+
+    particle_num = 0;
+    ROS_INFO("continuous_x = %d",continuous_x);
+    for (int i = 0; i < excellent_particle_num; ++i)
+    {
+        for (int j = 0; j < f_iter->particle_num; ++j)
+        {
+            particlepoint[particle_num].angle = Angle_Adjustment(Robot_Position.angle + rand()%rand_angle - rand_angle_init);
             if(Step_flag)
             {
                 float move_x = 0.0;
@@ -527,52 +497,59 @@ void ParticleFilter::StatePredict()
                 float y_dir_angle = 0.0;
                 if(continuous_y > 0)
                 {
-                    float y_dir_angle = Angle_Adjustment(current_particle.angle + 90.0);
+                    float y_dir_angle = Angle_Adjustment(particlepoint[particle_num].angle + 90.0);
                 }
                 else
                 {
-                    float y_dir_angle = Angle_Adjustment(current_particle.angle - 90.0);
+                    float y_dir_angle = Angle_Adjustment(particlepoint[particle_num].angle - 90.0);
                 }
-                move_x = cos(current_particle.angle * DEG2RAD) * continuous_x / 1000 + cos(y_dir_angle * DEG2RAD) * continuous_y / 1000;
-                move_y = -(sin(current_particle.angle * DEG2RAD) * continuous_x / 1000 + sin(y_dir_angle * DEG2RAD) * continuous_y / 1000);
-                move_x = 6.5 * move_x;
-                move_y = 6.5 * move_y;
-                /*if(i == 1)
+                move_x = cos(particlepoint[particle_num].angle * DEG2RAD) * continuous_x / 1000 + cos(y_dir_angle * DEG2RAD) * continuous_y / 1000;
+                move_y = -(sin(particlepoint[particle_num].angle * DEG2RAD) * continuous_x / 1000 + sin(y_dir_angle * DEG2RAD) * continuous_y / 1000);
+                move_x = 7.5 * move_x;
+                move_y = 7.5 * move_y;
+                if(particle_num == 1)
                 {
                     ROS_INFO("move_x = %f",move_x);
                     ROS_INFO("move_y = %f",move_y);
-                }*/
+                }
                 if(step_count == 0)
                 {
-                    current_particle.postion.X = particlepoint[best_particle_num].postion.X + (int)(move_x) + (rand() % 11 - 5);
-                    current_particle.postion.Y = particlepoint[best_particle_num].postion.Y + (int)(move_y) + (rand() % 11 - 5);
+                    particlepoint[particle_num].postion.X = f_iter->postion.X + (int)(move_x) + (rand() % 11 - 5);
+                    particlepoint[particle_num].postion.Y = f_iter->postion.Y + (int)(move_y) + (rand() % 11 - 5);
+                    //ROS_INFO("add the step");
                 }
                 else
                 {
-                    current_particle.postion.X = particlepoint[best_particle_num].postion.X + (int)(move_x) * step_count + (rand() % 11 - 5);
-                    current_particle.postion.Y = particlepoint[best_particle_num].postion.Y + (int)(move_y) * step_count + (rand() % 11 - 5);
+                    particlepoint[particle_num].postion.X = f_iter->postion.X + (int)(move_x) * step_count + (rand() % 11 - 5);
+                    particlepoint[particle_num].postion.Y = f_iter->postion.Y + (int)(move_y) * step_count + (rand() % 11 - 5);
+                    //ROS_INFO("add the step");
+                    //step_count = 0;
                 }
             }
             else
             {
-                current_particle.postion.X = particlepoint[best_particle_num].postion.X; //+ (rand() % 11 - 5);
-                current_particle.postion.Y = particlepoint[best_particle_num].postion.Y; //+ (rand() % 11 - 5);
+                particlepoint[particle_num].postion.X = f_iter->postion.X; //+ (int)(cos(particlepoint[particle_num].angle * DEG2RAD) * (rand() % 11 - 5));
+                particlepoint[particle_num].postion.Y = f_iter->postion.Y; //+ (int)(sin(particlepoint[particle_num].angle * DEG2RAD) * (rand() % 11 - 5));
                 //particlepoint[particle_num].postion.X = f_iter->postion.X + (rand() % 17 - 8);
                 //particlepoint[particle_num].postion.Y = f_iter->postion.Y + (rand() % 17 - 8);
             }
-            tmp.push_back(current_particle);
+            particle_num++;
+        }
+        if (f_iter != tmp.end())
+        {
+            f_iter++;
+        }
+        else
+        {
+            break;
         }
     }
-    particlepoint.clear();
-    particlepoint = tmp;
-    ROS_INFO("particlepoint size = %d",particlepoint.size());
     step_count = 0;
     Step_flag = false;
 }
 
 void ParticleFilter::NoLookFiled()
 {
-    ROS_INFO("NoLookFiled");
     if(Step_flag)
     {
         float move_x = 0.0;
@@ -591,8 +568,8 @@ void ParticleFilter::NoLookFiled()
             }
             move_x = cos(particlepoint[i].angle * DEG2RAD) * continuous_x / 1000 + cos(y_dir_angle * DEG2RAD) * continuous_y / 1000;
             move_y = -(sin(particlepoint[i].angle * DEG2RAD) * continuous_x / 1000 + sin(y_dir_angle * DEG2RAD) * continuous_y / 1000);
-            move_x = 6.5 * move_x;
-            move_y = 6.5 * move_y;
+            move_x = 11.5 * move_x;
+            move_y = 11.5 * move_y;
             if(step_count == 0)
             {
                 particlepoint[i].postion.X = particlepoint[i].postion.X + (int)(move_x);
@@ -618,8 +595,8 @@ void ParticleFilter::NoLookFiled()
         }
         move_x = cos(Robot_Position.angle * DEG2RAD) * continuous_x / 1000 + cos(y_dir_angle * DEG2RAD) * continuous_y / 1000;
         move_y = -(sin(Robot_Position.angle * DEG2RAD) * continuous_x / 1000 + sin(y_dir_angle * DEG2RAD) * continuous_y / 1000);
-        move_x = 6.5 * move_x;
-        move_y = 6.5 * move_y;
+        move_x = 11.5 * move_x;
+        move_y = 11.5 * move_y;
         if(step_count == 0)
         {
             Robot_Position.postion.X = Robot_Position.postion.X + (int)(move_x);
@@ -633,97 +610,7 @@ void ParticleFilter::NoLookFiled()
             //ROS_INFO("add the step");
             //step_count = 0;
         }
+        localization_flag = false;
         Step_flag = false;
     }
-    localization_flag = false;
-}
-
-void ParticleFilter::KLD_Sampling()
-{
-    ROS_INFO("KLD_Sampling");
-    int current_num = 0;
-    int particlepoint_num_finish = min_particlepoint_num + 10;
-    non_empty_bin.clear();
-    //ROS_INFO("particle number is %d !!!!!!!!!!!!!!!!!!!!!!!!",particlepoint_num);
-
-    while(current_num < particlepoint_num && current_num < particlepoint_num_finish)
-    {
-        pointdata current_point;
-        current_point.pos.X = particlepoint[current_num].postion.X;
-        current_point.pos.Y = particlepoint[current_num].postion.Y;
-        current_point.theta = int(particlepoint[current_num].angle);
-
-        if(non_empty_bin.size() != 0)
-        {
-            for(int i = 0; i < non_empty_bin.size(); i++)
-            {
-                int dis_x = abs(current_point.pos.X - non_empty_bin[i].pos.X);
-                int dis_y = abs(current_point.pos.Y - non_empty_bin[i].pos.Y);
-                int dis = sqrt(pow(dis_x,2) + pow(dis_y,2));
-                //ROS_INFO("dis = %d",dis);
-                // ROS_INFO("current_point.pos.X = %d",current_point.pos.X);
-                // ROS_INFO("current_point.pos.Y = %d",current_point.pos.Y);
-                // ROS_INFO("particlepoint[current_num].postion.X = %d",particlepoint[current_num].postion.X);
-                // ROS_INFO("particlepoint[current_num].postion.Y = %d",particlepoint[current_num].postion.Y);
-                if(dis > 3)
-                {
-                    non_empty_bin.push_back(current_point);
-                    if(current_num >= min_particlepoint_num)
-                    {
-                        //ROS_INFO("non_empty_bin.size = %d",non_empty_bin.size());
-                        float kld_equation_1 = float((non_empty_bin.size() - 1)) / (2.0 * kld_err);
-                        //ROS_INFO("kld_equation_1 is %f !!!!!!!!!!!!!!!!!!!!!!!!",kld_equation_1);
-                        float kld_equation_2 = 1.0 - 2.0 / (9.0 * float((non_empty_bin.size() - 1)));
-                        //ROS_INFO("kld_equation_2 is %f !!!!!!!!!!!!!!!!!!!!!!!!",kld_equation_2);
-                        float kld_equation_3 = sqrt(2.0 / (9.0 * (non_empty_bin.size() - 1))) * kld_z;
-                        //ROS_INFO("kld_equation_3 is %f !!!!!!!!!!!!!!!!!!!!!!!!",kld_equation_3);
-                        particlepoint_num_finish = int(kld_equation_1 * pow((kld_equation_2 + kld_equation_3),3));  
-                    }    
-                    break;
-                    /*if(current_point.pos.Y != non_empty_bin[i].pos.Y)
-                    {
-                        if(current_point.theta != non_empty_bin[i].theta)
-                        {
-                            non_empty_bin.push_back(current_point);
-                            if(current_num >= min_particlepoint_num)
-                            {
-                                ROS_INFO("non_empty_bin.size = %d",non_empty_bin.size());
-                                float kld_equation_1 = float((non_empty_bin.size() - 1)) / (2.0 * kld_err);
-                                //ROS_INFO("kld_equation_1 is %f !!!!!!!!!!!!!!!!!!!!!!!!",kld_equation_1);
-                                float kld_equation_2 = 1.0 - 2.0 / (9.0 * float((non_empty_bin.size() - 1)));
-                                //ROS_INFO("kld_equation_2 is %f !!!!!!!!!!!!!!!!!!!!!!!!",kld_equation_2);
-                                float kld_equation_3 = sqrt(2.0 / (9.0 * (non_empty_bin.size() - 1))) * kld_z;
-                                //ROS_INFO("kld_equation_3 is %f !!!!!!!!!!!!!!!!!!!!!!!!",kld_equation_3);
-                                particlepoint_num = int(kld_equation_1 * pow((kld_equation_2 + kld_equation_3),3));
-                            }
-                            break;
-                        }
-                    }*/
-                }
-            }
-        }
-        else
-        {
-            non_empty_bin.push_back(current_point);
-        }
-        current_num++;
-        //ROS_INFO("particle number is %d !!!!!!!!!!!!!!!!!!!!!!!!",particlepoint_num);
-    }
-    non_empty_bin.clear();
-    particlepoint_num = particlepoint_num_finish;
-    if(particlepoint_num < min_particlepoint_num)
-    {
-        particlepoint_num = min_particlepoint_num;
-    }
-    else if(particlepoint_num > PARTICLNUM)
-    {
-        particlepoint_num = PARTICLNUM;
-    }
-    excellent_particle_num = particlepoint_num * 0.1;
-    if(excellent_particle_num > EXCELLENTPARTICLNUM)
-    {
-        excellent_particle_num = EXCELLENTPARTICLNUM;
-    }
-    ROS_INFO("particle number is %d !!!!!!!!!!!!!!!!!!!!!!!!",particlepoint_num);
-    ROS_INFO("KLD_Sampling end!!");
 }

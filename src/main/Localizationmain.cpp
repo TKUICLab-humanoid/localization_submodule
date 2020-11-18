@@ -9,8 +9,8 @@ Localization_main::Localization_main(ros::NodeHandle &nh)
     spinner_timer = new ros::AsyncSpinner(1, &queue_timer);
     spinner_timer->start();
 
-    timer = nh_timer.createTimer(ros::Duration(0.96),&Localization_main::CalcStepFunction,this); 
-    //timer_2 = nh_timer.createTimer(ros::Duration(1),&Localization_main::CalcLoopRateFunction,this); 
+    timer = nh_timer.createTimer(ros::Duration(1),&Localization_main::CalcStepFunction,this); 
+    //timer_2 = nh_timer.createTimer(ros::Duration(1),&Localization_main::CalcLoopRateFunction,this);
     //check_time.setTimerPass(250);
     timer.start();
     //timer_2.start();
@@ -28,9 +28,8 @@ Localization_main::Localization_main(ros::NodeHandle &nh)
     RobotPos_Publisher = nh.advertise<tku_msgs::RobotPos>("/localization/robotpos", 1000);
 
     period_pre = 0.0;
-    first_get_imu = false;
     is_start = false;
-    change_pos_flag = false;
+    first_get_imu = false;
     loop_cnt = 0;
     loop_cnt_vector.clear();
 }
@@ -182,7 +181,7 @@ void Localization_main::GetWalkingParameterFunction(const tku_msgs::Parameter_me
         timer.setPeriod(ros::Duration(period));
         period_pre = period;
     }
-    ROS_INFO("period = %f",period);
+    //ROS_INFO("period = %f",period);
 } 
 
 void Localization_main::GetSetRobotPosFunction(const tku_msgs::SetRobotPos &msg) 
@@ -218,7 +217,6 @@ void Localization_main::DIOackFunction(const std_msgs::Int16 &msg)
     if(msg.data & 0x10)
     {
         is_start = true;
-        change_pos_flag = true;
     }
     else
     {
@@ -228,7 +226,7 @@ void Localization_main::DIOackFunction(const std_msgs::Int16 &msg)
 
 void Localization_main::CalcStepFunction(const ros::TimerEvent& event) 
 {
-    //ROS_INFO("INterRupt!!!!!!!!!");
+   // ROS_INFO("INterRupt!!!!!!!!!");
     if(!Step_flag)
     {  
         Step_flag = true;
@@ -244,8 +242,8 @@ int main(int argc, char** argv)
 	Localization_main *localization_main;
     localization_main = nullptr;
 
-    robot_pos_x_init = 750; 
-    robot_pos_y_init = 213;
+    robot_pos_x_init = 864; 
+    robot_pos_y_init = 209;
     robot_pos_dir_init = 0.0;
 
     bool reset_flag = false;
@@ -254,7 +252,7 @@ int main(int argc, char** argv)
 
     ros::Rate loop_rate(30);
 
-    while (nh.ok())
+   while (nh.ok())
     {
         if(localization_main == nullptr)
         {
@@ -296,6 +294,7 @@ int main(int argc, char** argv)
         ros::spinOnce();
         loop_rate.sleep();
     }
+
     return 0;
 }
 
@@ -312,6 +311,7 @@ void Localization_main::strategy_init()
     Soccer_Filed = DrawFiled();
 
     observation_data.imagestate = false;
+    Head_position = 1450;
 }
 
 void Localization_main::strategy_main()
@@ -333,8 +333,22 @@ void Localization_main::strategy_main()
         }
         else
         {
-            KLD_Sampling();
-            StatePredict();
+            if(!GetFindBestFlag() && GetLocalizationFlag())
+            {
+                CalcFOVArea_averagepos(Camera_Focus, Image_Top_Length, Image_Bottom_Length, Image_Top_Width_Length, Image_Bottom_Width_Length, Horizontal_Head_Angle);
+            }
+            else if(GetFindBestFlag() && GetLocalizationFlag())
+            {
+                CalcNewParticle();
+            }else
+            {
+                particlepoint.clear();
+                ParticlePointinit();
+                if (Robot_Position.featurepoint_scan_line.size() != 0)
+                {
+                    Robot_Position.featurepoint_scan_line.clear();
+                }
+            }
         }
         CalcFOVArea(Camera_Focus, Image_Top_Length, Image_Bottom_Length, Image_Top_Width_Length, Image_Bottom_Width_Length, Horizontal_Head_Angle);
         FindFeaturePoint();
@@ -345,9 +359,6 @@ void Localization_main::strategy_main()
         }
         //observation_data.clear();
         //imshow("FOV_Filed",DrawParticlePoint());
-        namedWindow("ParticlePoint",WINDOW_NORMAL);
-        imshow("ParticlePoint",DrawParticlePoint());
-        namedWindow("RobotPos",WINDOW_AUTOSIZE);
         imshow("RobotPos",DrawRobotPos());
     }
     //FOV_Filed = DrawFOV();
@@ -357,12 +368,9 @@ void Localization_main::strategy_main()
     robot_pos.y = Robot_Position.postion.Y;
     robot_pos.dir = Robot_Position.angle;
     RobotPos_Publisher.publish(robot_pos);
-
     //tool->Delay(4000);
     //ROS_INFO("distance = %d",Robot_Position.featurepoint[18].dis);
     //ROS_INFO("distance_y = %d",Robot_Position.featurepoint[18].y_dis);
-    //ROS_INFO("Robot_pos_x = %d",Robot_Position.postion.X);
-    //ROS_INFO("Robot_pos_y = %d",Robot_Position.postion.Y);
 
     /*ROS_INFO("FOV_Top_Right = %d",Robot_Position.FOV_Top_Right.X);
     ROS_INFO("FOV_Top_Right = %d",Robot_Position.FOV_Top_Right.Y);
@@ -375,4 +383,5 @@ void Localization_main::strategy_main()
 
     waitKey(1);
 }
+
 

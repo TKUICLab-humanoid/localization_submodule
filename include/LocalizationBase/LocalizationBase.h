@@ -1,5 +1,4 @@
 #include <ros/ros.h>
-#include <random>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -19,7 +18,6 @@
 #define DEG2RAD         M_PI/180
 #define PI              3.14159265
 #define PARTICLNUM      1000
-#define EXCELLENTPARTICLNUM      20
 
 using namespace std;
 using namespace cv;
@@ -28,12 +26,6 @@ struct coordinate
 {
     int X;
     int Y;
-};
-
-struct pointdata
-{
-    coordinate pos;
-    int theta;
 };
 
 struct featuredata
@@ -76,7 +68,6 @@ struct ParticlePoint
     float weight;
     int particle_num;
     float angle;
-    float FOV_dir;
 
     vector<scan_line> featurepoint_scan_line;
 

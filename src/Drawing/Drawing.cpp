@@ -21,7 +21,7 @@ Mat Drawing::convertTo3Channels(const Mat &binImg)
     return three_channel;
 }
 
-/*Mat Drawing::DrawFiled()   //RoboCup field
+/*Mat Drawing::DrawFiled()
 {
     Mat Filed(MAP_WIDTH, MAP_LENGTH, CV_8UC3, Scalar(0, 0, 0));
     Mat Filed_edge;
@@ -55,7 +55,7 @@ Mat Drawing::convertTo3Channels(const Mat &binImg)
     return Filed_edge;
 }*/
 
-Mat Drawing::DrawFiled()    //E223 field
+Mat Drawing::DrawFiled()
 {
     Mat Filed(MAP_WIDTH, MAP_LENGTH, CV_8UC3, Scalar(0, 0, 0));
     Mat Filed_edge;
