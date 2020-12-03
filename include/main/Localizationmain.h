@@ -13,6 +13,8 @@
 #include "tku_msgs/Parameter_message.h"
 #include "tku_msgs/RobotPos.h"
 #include "tku_msgs/SetRobotPos.h"
+#include "tku_msgs/GetVelocity.h"
+
 
 //#include "tku_libs/TKU_tool.h"
 #include "tku_libs/RosCommunication.h"
@@ -56,6 +58,8 @@ class Localization_main : public Drawing
         void GetWalkingParameterFunction(const tku_msgs::Parameter_message &msg);
         void GetSetRobotPosFunction(const tku_msgs::SetRobotPos &msg);
         void StartFunction(const std_msgs::Bool& msg);
+        void GetVelocityValue(const tku_msgs::GetVelocity &msg);
+
 		void DIOackFunction(const std_msgs::Int16 &msg);
 
         void CalcStepFunction(const ros::TimerEvent& event);
@@ -90,6 +94,7 @@ class Localization_main : public Drawing
         ros::Subscriber WalkingParameter_Subscriber;
         ros::Subscriber SetRobotPos_Subscriber;
         ros::Subscriber Start_Subscriber;
+        ros::Subscriber GetVelocity_Subscriber;
 		ros::Subscriber DIO_Ack_Subscriber;
 
         ros::Publisher  IMUDataRequest_Publisher; 
@@ -108,7 +113,7 @@ class Localization_main : public Drawing
 
         bool first_loop_flag = true;
         bool first_get_imu;
-
+        vector<int> Velocityvalue;
         vector<scan_line> feature_point_observation_data;
 
         Mat FOV_Filed;

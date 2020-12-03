@@ -25,6 +25,8 @@ Localization_main::Localization_main(ros::NodeHandle &nh)
     Start_Subscriber = nh.subscribe("/web/start", 10, &Localization_main::StartFunction,this);
     DIO_Ack_Subscriber = nh.subscribe("/package/FPGAack", 10, &Localization_main::DIOackFunction,this);
 
+    GetVelocity_Subscriber = nh.subscribe("/GetVelocityValue_Topic", 10, &Localization_main::GetVelocityValue,this);
+    
     RobotPos_Publisher = nh.advertise<tku_msgs::RobotPos>("/localization/robotpos", 1000);
 
     period_pre = 0.0;
@@ -32,11 +34,21 @@ Localization_main::Localization_main(ros::NodeHandle &nh)
     is_start = false;
     change_pos_flag = false;
     loop_cnt = 0;
+    Velocityvalue ={0,0,0,0,0};
     loop_cnt_vector.clear();
 }
 Localization_main::~Localization_main()
 {
     delete spinner_timer;
+}
+
+void Localization_main::GetVelocityValue(const tku_msgs::GetVelocity &msg)
+{
+    Velocityvalue[0] = msg.x;
+    Velocityvalue[1] = msg.y;
+    Velocityvalue[2] = msg.thta;
+    Velocityvalue[3] = 1;
+    Velocityvalue[4] = 0;
 }
 
 void Localization_main::GetImageLengthDataFunction(const tku_msgs::ImageLengthData &msg)
@@ -158,12 +170,14 @@ void Localization_main::GetSendBodyAutoFunction(const tku_msgs::Interface &msg)
     {
         continuous_x = msg.x;
         continuous_y = msg.y;
+        continuous_theta = msg.thta;
         ROS_INFO("continuous_x_start = %d",continuous_x);
     }
     else
     {
         sendbodyauto_x = msg.x;
         sendbodyauto_y = msg.y;
+        sendbodyauto_theta = msg.thta;
     }
 }
 
@@ -171,6 +185,7 @@ void Localization_main::GetContinuousValueFunction(const tku_msgs::Interface &ms
 {
     continuous_x = msg.x;
     continuous_y = msg.y;
+    continuous_theta = msg.thta;
     ROS_INFO("continuous_x_forever = %d",continuous_x);
 }
 
@@ -299,6 +314,11 @@ int main(int argc, char** argv)
     return 0;
 }
 
+// vector<int> Localization_main::GetAction()
+// {
+    
+// }
+
 void Localization_main::strategy_init()
 {
     if(Robot_Position.postion.X < 0 && Robot_Position.postion.Y < 0)
@@ -334,7 +354,7 @@ void Localization_main::strategy_main()
         else
         {
             KLD_Sampling();
-            StatePredict();
+            StatePredict(Velocityvalue);
         }
         CalcFOVArea(Camera_Focus, Image_Top_Length, Image_Bottom_Length, Image_Top_Width_Length, Image_Bottom_Width_Length, Horizontal_Head_Angle);
         FindFeaturePoint();

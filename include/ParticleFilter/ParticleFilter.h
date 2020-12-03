@@ -31,16 +31,31 @@ class ParticleFilter : public LocalizationBase
     public:
         vector<ParticlePoint> particlepoint;
         vector<ParticlePoint> particlepoint_compare;
-
+        vector<int> factors;
         ParticlePoint Robot_Position;
 
         bool Step_flag = false;
 
         int sendbodyauto_x;
         int sendbodyauto_y;
+        int sendbodyauto_theta;
         int continuous_x;
         int continuous_y;
+        int continuous_theta;
         int step_count;
+
+        /////WMCL//////
+        int wfactor;
+        int rotation;
+        int posx;
+        int posy;
+        vector<Point> regions;
+        double gauss(double sigma, double mu = 0);
+        void Motion(int straight = 0, int drift = 0, int rotational = 0, int moving = 1, int dt = 0);
+        void Movement(int straight=0, int drift=0, int rotational=0, int moving=1, int dt=0);
+        void GetUpBackUp();
+        void GetUpFrontUp();
+
     public:
         ParticleFilter();
         ~ParticleFilter();
@@ -52,7 +67,7 @@ class ParticleFilter : public LocalizationBase
         void FindBestParticle(scan_line *feature_point_observation_data);
         void FindRobotPosition(float x_avg, float y_avg);
         int TournamentResample(int excellent_particle_num);
-        void StatePredict();
+        void StatePredict(vector<int> u);
         //void CalcNewParticle();
 
         //////////////////KLD//////////////////

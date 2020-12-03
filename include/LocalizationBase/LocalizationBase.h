@@ -17,6 +17,7 @@
 #define MAP_MAX_LENGTH  1360        //sqrt((pow(MAP_LENGTH,2)+pow(MAP_WIDTH,2)))
 #define MOTORDEG        0.08789     //360/4096 (deg)
 #define DEG2RAD         M_PI/180
+#define RAD2DEG         180/M_PI
 #define PI              3.14159265
 #define PARTICLNUM      1000
 #define EXCELLENTPARTICLNUM      20
@@ -66,7 +67,6 @@ struct scan_line
 struct ParticlePoint
 {
     coordinate postion;
-
     coordinate FOV_Bottom_Right;
     coordinate FOV_Bottom_Left;
     coordinate FOV_Top_Right;
