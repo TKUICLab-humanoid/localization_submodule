@@ -170,14 +170,14 @@ void Localization_main::GetSendBodyAutoFunction(const tku_msgs::Interface &msg)
     {
         continuous_x = msg.x;
         continuous_y = msg.y;
-        continuous_theta = msg.thta;
+        continuous_theta = msg.theta;
         ROS_INFO("continuous_x_start = %d",continuous_x);
     }
     else
     {
         sendbodyauto_x = msg.x;
         sendbodyauto_y = msg.y;
-        sendbodyauto_theta = msg.thta;
+        sendbodyauto_theta = msg.theta;
     }
 }
 
@@ -185,7 +185,7 @@ void Localization_main::GetContinuousValueFunction(const tku_msgs::Interface &ms
 {
     continuous_x = msg.x;
     continuous_y = msg.y;
-    continuous_theta = msg.thta;
+    continuous_theta = msg.theta;
     ROS_INFO("continuous_x_forever = %d",continuous_x);
 }
 
