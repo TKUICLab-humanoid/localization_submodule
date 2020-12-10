@@ -3,6 +3,7 @@
 Localization_main::Localization_main(ros::NodeHandle &nh)
 {
     this->nh = &nh;
+    image_transport::ImageTransport it(nh);
 
     nh_timer.setCallbackQueue(&queue_timer);
     queue_timer.callAvailable(ros::WallDuration());
@@ -28,6 +29,8 @@ Localization_main::Localization_main(ros::NodeHandle &nh)
     GetVelocity_Subscriber = nh.subscribe("/GetVelocityValue_Topic", 10, &Localization_main::GetVelocityValue,this);
     
     RobotPos_Publisher = nh.advertise<tku_msgs::RobotPos>("/localization/robotpos", 1000);
+    DrawRobotPos_Publisher = it.advertise("/localization/DrawRobotPos", 1);
+    ParticlePoint_Publisher = it.advertise("/localization/ParticlePoint", 1);
 
     period_pre = 0.0;
     first_get_imu = false;
@@ -342,7 +345,7 @@ void Localization_main::strategy_main()
         NoLookFiled();
         CalcFOVArea_averagepos(Camera_Focus, Image_Top_Length, Image_Bottom_Length, Image_Top_Width_Length, Image_Bottom_Width_Length, Horizontal_Head_Angle);
         //imshow("FOV_Filed",DrawParticlePoint());
-        imshow("RobotPos",DrawRobotPos());
+        // imshow("RobotPos",DrawRobotPos());
     }
     else
     {
@@ -365,10 +368,10 @@ void Localization_main::strategy_main()
         }
         //observation_data.clear();
         //imshow("FOV_Filed",DrawParticlePoint());
-        namedWindow("ParticlePoint",WINDOW_NORMAL);
-        imshow("ParticlePoint",DrawParticlePoint());
-        namedWindow("RobotPos",WINDOW_AUTOSIZE);
-        imshow("RobotPos",DrawRobotPos());
+        // namedWindow("ParticlePoint",WINDOW_NORMAL);
+        // imshow("ParticlePoint",DrawParticlePoint());
+        // namedWindow("RobotPos",WINDOW_AUTOSIZE);
+        // imshow("RobotPos",DrawRobotPos());
     }
     //FOV_Filed = DrawFOV();
     //particlepoint.clear();
@@ -393,6 +396,12 @@ void Localization_main::strategy_main()
     ROS_INFO("FOV_Bottom_Left = %d",Robot_Position.FOV_Bottom_Left.X);
     ROS_INFO("FOV_Bottom_Left = %d",Robot_Position.FOV_Bottom_Left.Y);*/
 
-    waitKey(1);
+    
+    msg_DrawRobotPos = cv_bridge::CvImage(std_msgs::Header(), "bgr8", DrawRobotPos()).toImageMsg();
+    msg_ParticlePoint = cv_bridge::CvImage(std_msgs::Header(), "bgr8", DrawParticlePoint()).toImageMsg();
+
+    DrawRobotPos_Publisher.publish(msg_DrawRobotPos);
+    ParticlePoint_Publisher.publish(msg_ParticlePoint);
+    waitKey(10);
 }
 

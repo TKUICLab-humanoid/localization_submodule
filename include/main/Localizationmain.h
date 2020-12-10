@@ -5,6 +5,7 @@
 #include <std_msgs/Int16.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/Float32.h>
+#include <image_transport/image_transport.h>
 
 #include "tku_msgs/ImageLengthData.h"
 #include "tku_msgs/ObservationData.h"
@@ -99,6 +100,11 @@ class Localization_main : public Drawing
 
         ros::Publisher  IMUDataRequest_Publisher; 
         ros::Publisher  RobotPos_Publisher;
+        
+        sensor_msgs::ImagePtr msg_DrawRobotPos;
+        sensor_msgs::ImagePtr msg_ParticlePoint;
+        image_transport::Publisher DrawRobotPos_Publisher;
+        image_transport::Publisher ParticlePoint_Publisher;
     private:
         int Camera_Focus;
         int Image_Top_Length;

@@ -645,6 +645,7 @@ void ParticleFilter::StatePredict(vector<int> u)
         current_particle.postion.Y = posy;
         current_particle.angle = rotation;
         tmp.push_back(current_particle);
+        ROS_INFO("posx = %d,posy = %d,rotation = %d",posx,posy,rotation);
     }
     particlepoint.clear();
     particlepoint = tmp;
