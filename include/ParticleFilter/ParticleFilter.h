@@ -18,6 +18,11 @@ class ParticleFilter : public LocalizationBase
         vector<pointdata> non_empty_bin;    //save the non-empty bins
         //////////////////KLD//////////////////
         
+        //////////////////WMCL/////////////////
+        float total_weight;
+
+
+
         //////////////////Augmented_MCL//////////////////
         float weight_avg;       //the average of the weight of particlepoint
         float weight_slow;      //the long-term weight of particlepoint
@@ -52,9 +57,10 @@ class ParticleFilter : public LocalizationBase
         vector<Point> regions;
         double gauss(double sigma, double mu = 0);
         void Motion(int straight = 0, int drift = 0, int rotational = 0, int moving = 1, int dt = 0);
-        void Movement(int straight=0, int drift=0, int rotational=0, int moving=1, int dt=0);
+        void Movement(int straight = 0, int drift = 0, int rotational = 0, int moving = 1, int dt = 0);
         void GetUpBackUp();
         void GetUpFrontUp();
+        /////WMCL//////
 
     public:
         ParticleFilter();
@@ -68,6 +74,8 @@ class ParticleFilter : public LocalizationBase
         void FindRobotPosition(float x_avg, float y_avg);
         int TournamentResample(int excellent_particle_num);
         void StatePredict(vector<int> u);
+        double ComputeAngLikelihoodDeg(double angle, double base, double std_deviation);
+
         //void CalcNewParticle();
 
         //////////////////KLD//////////////////
@@ -75,7 +83,7 @@ class ParticleFilter : public LocalizationBase
 
         void CalcFOVArea_averagepos(int focus, int top, int bottom, int top_width, int bottom_width, float horizontal_head_angle);
 
-        void NoLookFiled();
+        void NoLookField(vector<int> u);
 
         bool GetFindBestFlag(){return find_best_flag;}
         bool GetLocalizationFlag(){return localization_flag;}

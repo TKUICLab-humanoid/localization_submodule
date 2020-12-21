@@ -1,7 +1,7 @@
 #include <ParticleFilter/ParticleFilter.h>
 
-#define FILED_LENGTH    900        
-#define FILED_WIDTH     600
+#define Field_LENGTH    900        
+#define Field_WIDTH     600
 
 using namespace std;
 using namespace cv;
@@ -19,7 +19,7 @@ class Drawing : public ParticleFilter
         ~Drawing();
 
         Mat convertTo3Channels(const Mat &binImg);
-        Mat DrawFiled();
+        Mat DrawField();
         Mat DrawFOV();
         Mat DrawRobotPos();
         Mat DrawParticlePoint();

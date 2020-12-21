@@ -21,77 +21,77 @@ Mat Drawing::convertTo3Channels(const Mat &binImg)
     return three_channel;
 }
 
-/*Mat Drawing::DrawFiled()   //RoboCup field
+/*Mat Drawing::DrawField()   //RoboCup field
 {
-    Mat Filed(MAP_WIDTH, MAP_LENGTH, CV_8UC3, Scalar(0, 0, 0));
-    Mat Filed_edge;
+    Mat Field(MAP_WIDTH, MAP_LENGTH, CV_8UC3, Scalar(0, 0, 0));
+    Mat Field_edge;
 
-    rectangle(Filed, Point(102,102), Point(998,698), Scalar(255, 255, 255), 3);
-    rectangle(Filed, Point(102,152), Point(298,648), Scalar(255, 255, 255), 3);
-    rectangle(Filed, Point(802,152), Point(998,648), Scalar(255, 255, 255), 3);
-    rectangle(Filed, Point(102,252), Point(198,548), Scalar(255, 255, 255), 3);
-    rectangle(Filed, Point(902,252), Point(998,548), Scalar(255, 255, 255), 3);
+    rectangle(Field, Point(102,102), Point(998,698), Scalar(255, 255, 255), 3);
+    rectangle(Field, Point(102,152), Point(298,648), Scalar(255, 255, 255), 3);
+    rectangle(Field, Point(802,152), Point(998,648), Scalar(255, 255, 255), 3);
+    rectangle(Field, Point(102,252), Point(198,548), Scalar(255, 255, 255), 3);
+    rectangle(Field, Point(902,252), Point(998,548), Scalar(255, 255, 255), 3);
 
-    circle(Filed, Point(550,400), 73, Scalar(255, 255, 255), 3);
+    circle(Field, Point(550,400), 73, Scalar(255, 255, 255), 3);
 
-    line(Filed, Point(550,102), Point(550,698), Scalar(255, 255, 255), 3);
+    line(Field, Point(550,102), Point(550,698), Scalar(255, 255, 255), 3);
 
-    line(Filed, Point(542,400), Point(558,400), Scalar(255, 255, 255), 3);
+    line(Field, Point(542,400), Point(558,400), Scalar(255, 255, 255), 3);
     
-    line(Filed, Point(250,392), Point(250,408), Scalar(255, 255, 255), 3);
-    line(Filed, Point(242,400), Point(258,400), Scalar(255, 255, 255), 3);
+    line(Field, Point(250,392), Point(250,408), Scalar(255, 255, 255), 3);
+    line(Field, Point(242,400), Point(258,400), Scalar(255, 255, 255), 3);
 
-    line(Filed, Point(850,392), Point(850,408), Scalar(255, 255, 255), 3);
-    line(Filed, Point(842,400), Point(858,400), Scalar(255, 255, 255), 3);
+    line(Field, Point(850,392), Point(850,408), Scalar(255, 255, 255), 3);
+    line(Field, Point(842,400), Point(858,400), Scalar(255, 255, 255), 3);
 
-    cv::Canny(Filed, Filed_edge, 50, 150, 3);
-    Filed_edge=convertTo3Channels(Filed_edge);
-    line(Filed_edge, Point(42,268), Point(102,268), Scalar(0, 255, 255), 3);
-    line(Filed_edge, Point(42,268), Point(42,532), Scalar(0, 255, 255), 3);
-    line(Filed_edge, Point(42,532), Point(102,532), Scalar(0, 255, 255), 3);
-    line(Filed_edge, Point(998,268), Point(1058,268), Scalar(0, 255, 255), 3);
-    line(Filed_edge, Point(1058,268), Point(1058,532), Scalar(0, 255, 255), 3);
-    line(Filed_edge, Point(998,532), Point(1058,532), Scalar(0, 255, 255), 3);
-    return Filed_edge;
+    cv::Canny(Field, Field_edge, 50, 150, 3);
+    Field_edge=convertTo3Channels(Field_edge);
+    line(Field_edge, Point(42,268), Point(102,268), Scalar(0, 255, 255), 3);
+    line(Field_edge, Point(42,268), Point(42,532), Scalar(0, 255, 255), 3);
+    line(Field_edge, Point(42,532), Point(102,532), Scalar(0, 255, 255), 3);
+    line(Field_edge, Point(998,268), Point(1058,268), Scalar(0, 255, 255), 3);
+    line(Field_edge, Point(1058,268), Point(1058,532), Scalar(0, 255, 255), 3);
+    line(Field_edge, Point(998,532), Point(1058,532), Scalar(0, 255, 255), 3);
+    return Field_edge;
 }*/
 
-Mat Drawing::DrawFiled()    //E223 field
+Mat Drawing::DrawField()    //E223 field
 {
-    Mat Filed(MAP_WIDTH, MAP_LENGTH, CV_8UC3, Scalar(0, 0, 0));
-    Mat Filed_edge;
+    Mat Field(MAP_WIDTH, MAP_LENGTH, CV_8UC3, Scalar(0, 0, 0));
+    Mat Field_edge;
 
-    rectangle(Filed, Point(102,122), Point(998,678), Scalar(255, 255, 255), 3);
-    rectangle(Filed, Point(102,172), Point(298,628), Scalar(255, 255, 255), 3);
-    rectangle(Filed, Point(802,172), Point(998,628), Scalar(255, 255, 255), 3);
-    rectangle(Filed, Point(102,252), Point(198,548), Scalar(255, 255, 255), 3);
-    rectangle(Filed, Point(902,252), Point(998,548), Scalar(255, 255, 255), 3);
+    rectangle(Field, Point(102,122), Point(998,678), Scalar(255, 255, 255), 3);
+    rectangle(Field, Point(102,172), Point(298,628), Scalar(255, 255, 255), 3);
+    rectangle(Field, Point(802,172), Point(998,628), Scalar(255, 255, 255), 3);
+    rectangle(Field, Point(102,252), Point(198,548), Scalar(255, 255, 255), 3);
+    rectangle(Field, Point(902,252), Point(998,548), Scalar(255, 255, 255), 3);
 
-    circle(Filed, Point(550,400), 73, Scalar(255, 255, 255), 3);
+    circle(Field, Point(550,400), 73, Scalar(255, 255, 255), 3);
 
-    line(Filed, Point(550,122), Point(550,678), Scalar(255, 255, 255), 3);
+    line(Field, Point(550,122), Point(550,678), Scalar(255, 255, 255), 3);
 
-    line(Filed, Point(542,400), Point(558,400), Scalar(255, 255, 255), 3);
+    line(Field, Point(542,400), Point(558,400), Scalar(255, 255, 255), 3);
     
-    line(Filed, Point(250,392), Point(250,408), Scalar(255, 255, 255), 3);
-    line(Filed, Point(242,400), Point(258,400), Scalar(255, 255, 255), 3);
+    line(Field, Point(250,392), Point(250,408), Scalar(255, 255, 255), 3);
+    line(Field, Point(242,400), Point(258,400), Scalar(255, 255, 255), 3);
 
-    line(Filed, Point(850,392), Point(850,408), Scalar(255, 255, 255), 3);
-    line(Filed, Point(842,400), Point(858,400), Scalar(255, 255, 255), 3);
+    line(Field, Point(850,392), Point(850,408), Scalar(255, 255, 255), 3);
+    line(Field, Point(842,400), Point(858,400), Scalar(255, 255, 255), 3);
 
-    cv::Canny(Filed, Filed_edge, 50, 150, 3);
-    Filed_edge=convertTo3Channels(Filed_edge);
-    line(Filed_edge, Point(42,268), Point(102,268), Scalar(0, 255, 255), 3);
-    line(Filed_edge, Point(42,268), Point(42,532), Scalar(0, 255, 255), 3);
-    line(Filed_edge, Point(42,532), Point(102,532), Scalar(0, 255, 255), 3);
-    line(Filed_edge, Point(998,268), Point(1058,268), Scalar(0, 255, 255), 3);
-    line(Filed_edge, Point(1058,268), Point(1058,532), Scalar(0, 255, 255), 3);
-    line(Filed_edge, Point(998,532), Point(1058,532), Scalar(0, 255, 255), 3);
-    return Filed_edge;
+    cv::Canny(Field, Field_edge, 50, 150, 3);
+    Field_edge=convertTo3Channels(Field_edge);
+    line(Field_edge, Point(42,268), Point(102,268), Scalar(0, 255, 255), 3);
+    line(Field_edge, Point(42,268), Point(42,532), Scalar(0, 255, 255), 3);
+    line(Field_edge, Point(42,532), Point(102,532), Scalar(0, 255, 255), 3);
+    line(Field_edge, Point(998,268), Point(1058,268), Scalar(0, 255, 255), 3);
+    line(Field_edge, Point(1058,268), Point(1058,532), Scalar(0, 255, 255), 3);
+    line(Field_edge, Point(998,532), Point(1058,532), Scalar(0, 255, 255), 3);
+    return Field_edge;
 }
 
 Mat Drawing::DrawFOV()
 {
-    Mat tmp_FOV = Soccer_Filed.clone();
+    Mat tmp_FOV = Soccer_Field.clone();
     for(int i = 0; i < particlepoint.size(); i++)
     {
         FOV_Point_tmp.push_back(Point(particlepoint[i].FOV_Bottom_Right.X,particlepoint[i].FOV_Bottom_Right.Y));
@@ -113,7 +113,7 @@ Mat Drawing::DrawFOV()
 
 void Drawing::DrawFeaturePoint(Mat* iframe)
 {
-    //Mat oframe = FOV_Filed.clone();
+    //Mat oframe = FOV_Field.clone();
     /*for(int i = 0; i < particlepoint.size(); i++)
     {
         for(int j = 0; j < particlepoint[i].featurepoint.size(); j++)
@@ -129,7 +129,7 @@ void Drawing::DrawFeaturePoint(Mat* iframe)
 
 Mat Drawing::DrawParticlePoint()
 {
-    Mat ParticlePoint_tmp = Soccer_Filed.clone();
+    Mat ParticlePoint_tmp = Soccer_Field.clone();
     for(int i = 0; i < particlepoint.size(); i++)
     {
         circle(ParticlePoint_tmp, Point(particlepoint[i].postion.X,particlepoint[i].postion.Y), 3, Scalar(255, 0, 0), 1);
@@ -139,7 +139,7 @@ Mat Drawing::DrawParticlePoint()
 
 Mat Drawing::DrawRobotPos()
 {
-    Mat oframe = Soccer_Filed.clone();
+    Mat oframe = Soccer_Field.clone();
 
     Robot_FOV_tmp.push_back(Point(Robot_Position.FOV_Bottom_Right.X,Robot_Position.FOV_Bottom_Right.Y));
     Robot_FOV_tmp.push_back(Point(Robot_Position.FOV_Top_Right.X,Robot_Position.FOV_Top_Right.Y));

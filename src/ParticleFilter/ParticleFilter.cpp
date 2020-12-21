@@ -29,6 +29,7 @@ ParticleFilter::ParticleFilter()
     posx = 0;
     posy = 0;
     rotation = 0;
+    total_weight = 0;
     //////////////////KLD//////////////////
     min_particlepoint_num = 50;
     kld_err = 0.45;             //defalut 0.05
@@ -211,10 +212,10 @@ void ParticleFilter::FindFeaturePoint()
             {      
                 int x_ = r * Angle_cos[angle_be];
                 int y_ = r * Angle_sin[angle_be];
-                int x = Frame_Area(centerx + x_, Soccer_Filed.cols);
-                int y = Frame_Area(centery - y_, Soccer_Filed.rows);
+                int x = Frame_Area(centerx + x_, Soccer_Field.cols);
+                int y = Frame_Area(centery - y_, Soccer_Field.rows);
 
-                if(x == 0 || x == (Soccer_Filed.cols - 1) || y == 0 || y == (Soccer_Filed.rows - 1))
+                if(x == 0 || x == (Soccer_Field.cols - 1) || y == 0 || y == (Soccer_Field.rows - 1))
                 {
                     if(!find_feature_flag)
                     {
@@ -232,7 +233,7 @@ void ParticleFilter::FindFeaturePoint()
                 {
                     if(CheckPointArea(&particlepoint[i], x, y))
                     { 
-                        if(Soccer_Filed.data[(y * Soccer_Filed.cols + x) * 3 + 0] == 255)
+                        if(Soccer_Field.data[(y * Soccer_Field.cols + x) * 3 + 0] == 255)
                         {
                             featuredata tmp;
                             if(scan_tmp.feature_point.size() != 0)
@@ -281,6 +282,293 @@ void ParticleFilter::FindFeaturePoint()
         }
     }
 }
+
+void ParticleFilter::KLD_Sampling()
+{
+    ROS_INFO("KLD_Sampling");
+    int current_num = 0;
+    int particlepoint_num_finish = min_particlepoint_num + 10;
+    non_empty_bin.clear();
+    //ROS_INFO("particle number is %d !!!!!!!!!!!!!!!!!!!!!!!!",particlepoint_num);
+
+    while(current_num < particlepoint_num && current_num < particlepoint_num_finish)
+    {
+        pointdata current_point;
+        current_point.pos.X = particlepoint[current_num].postion.X;
+        current_point.pos.Y = particlepoint[current_num].postion.Y;
+        current_point.theta = int(particlepoint[current_num].angle);
+
+        if(non_empty_bin.size() != 0)
+        {
+            for(int i = 0; i < non_empty_bin.size(); i++)
+            {
+                int dis_x = abs(current_point.pos.X - non_empty_bin[i].pos.X);
+                int dis_y = abs(current_point.pos.Y - non_empty_bin[i].pos.Y);
+                int dis = sqrt(pow(dis_x,2) + pow(dis_y,2));
+                //ROS_INFO("dis = %d",dis);
+                // ROS_INFO("current_point.pos.X = %d",current_point.pos.X);
+                // ROS_INFO("current_point.pos.Y = %d",current_point.pos.Y);
+                // ROS_INFO("particlepoint[current_num].postion.X = %d",particlepoint[current_num].postion.X);
+                // ROS_INFO("particlepoint[current_num].postion.Y = %d",particlepoint[current_num].postion.Y);
+                if(dis > 3)
+                {
+                    non_empty_bin.push_back(current_point);
+                    if(current_num >= min_particlepoint_num)
+                    {
+                        //ROS_INFO("non_empty_bin.size = %d",non_empty_bin.size());
+                        float kld_equation_1 = float((non_empty_bin.size() - 1)) / (2.0 * kld_err);
+                        //ROS_INFO("kld_equation_1 is %f !!!!!!!!!!!!!!!!!!!!!!!!",kld_equation_1);
+                        float kld_equation_2 = 1.0 - 2.0 / (9.0 * float((non_empty_bin.size() - 1)));
+                        //ROS_INFO("kld_equation_2 is %f !!!!!!!!!!!!!!!!!!!!!!!!",kld_equation_2);
+                        float kld_equation_3 = sqrt(2.0 / (9.0 * (non_empty_bin.size() - 1))) * kld_z;
+                        //ROS_INFO("kld_equation_3 is %f !!!!!!!!!!!!!!!!!!!!!!!!",kld_equation_3);
+                        particlepoint_num_finish = int(kld_equation_1 * pow((kld_equation_2 + kld_equation_3),3));  
+                    }    
+                    break;
+                    /*if(current_point.pos.Y != non_empty_bin[i].pos.Y)
+                    {
+                        if(current_point.theta != non_empty_bin[i].theta)
+                        {
+                            non_empty_bin.push_back(current_point);
+                            if(current_num >= min_particlepoint_num)
+                            {
+                                ROS_INFO("non_empty_bin.size = %d",non_empty_bin.size());
+                                float kld_equation_1 = float((non_empty_bin.size() - 1)) / (2.0 * kld_err);
+                                //ROS_INFO("kld_equation_1 is %f !!!!!!!!!!!!!!!!!!!!!!!!",kld_equation_1);
+                                float kld_equation_2 = 1.0 - 2.0 / (9.0 * float((non_empty_bin.size() - 1)));
+                                //ROS_INFO("kld_equation_2 is %f !!!!!!!!!!!!!!!!!!!!!!!!",kld_equation_2);
+                                float kld_equation_3 = sqrt(2.0 / (9.0 * (non_empty_bin.size() - 1))) * kld_z;
+                                //ROS_INFO("kld_equation_3 is %f !!!!!!!!!!!!!!!!!!!!!!!!",kld_equation_3);
+                                particlepoint_num = int(kld_equation_1 * pow((kld_equation_2 + kld_equation_3),3));
+                            }
+                            break;
+                        }
+                    }*/
+                }
+            }
+        }
+        else
+        {
+            non_empty_bin.push_back(current_point);
+        }
+        current_num++;
+        //ROS_INFO("particle number is %d !!!!!!!!!!!!!!!!!!!!!!!!",particlepoint_num);
+    }
+    non_empty_bin.clear();
+    particlepoint_num = particlepoint_num_finish;
+    if(particlepoint_num < min_particlepoint_num)
+    {
+        particlepoint_num = min_particlepoint_num;
+    }
+    else if(particlepoint_num > PARTICLNUM)
+    {
+        particlepoint_num = PARTICLNUM;
+    }
+    excellent_particle_num = particlepoint_num * 0.1;
+    if(excellent_particle_num > EXCELLENTPARTICLNUM)
+    {
+        excellent_particle_num = EXCELLENTPARTICLNUM;
+    }
+    ROS_INFO("particle number is %d !!!!!!!!!!!!!!!!!!!!!!!!",particlepoint_num);
+    ROS_INFO("KLD_Sampling end!!");
+}
+
+int ParticleFilter::TournamentResample(int excellent_particle_num)
+{
+    int tournament_particle_num[excellent_particle_num] = {0};
+    int best_particle_num = 0;
+    float best_weight_value = 0.0;
+
+    for(int i = 0; i < excellent_particle_num; ++i)
+    {
+        tournament_particle_num[i] = rand()%particlepoint_num;
+        for(int j = 0; j < i; j++)
+        {
+            if(tournament_particle_num[i] == tournament_particle_num[j])
+            {
+                tournament_particle_num[i] = rand()%particlepoint_num;
+                j = -1;
+            }
+        }
+        if(particlepoint[tournament_particle_num[i]].weight > best_weight_value)
+        {
+            best_weight_value = particlepoint[tournament_particle_num[i]].weight;
+            best_particle_num = tournament_particle_num[i];
+        }
+    }
+    return best_particle_num;
+}
+
+double ParticleFilter::gauss(double sigma, double mu)
+{
+    std::random_device rd;
+    std::mt19937 generator(rd());
+    std::normal_distribution<> dist;
+    std::normal_distribution<> norm {mu, sigma};
+    return norm(rd);
+}
+
+void ParticleFilter::Motion(int straight, int drift, int rotational, int moving, int dt)
+{
+    int Forward = int(  straight +
+                        gauss(factors[0] * straight) +
+                        gauss(factors[1] * drift) +
+                        gauss(factors[2] * rotational) +
+                        gauss(factors[3] * wfactor) +
+                        gauss(factors[4]));
+    
+    int Side  = int(    drift +
+                        gauss(factors[5] * straight) +
+                        gauss(factors[6] * drift) +
+                        gauss(factors[7] * rotational) +
+                        gauss(factors[8] * wfactor) +
+                        gauss(factors[9]));
+
+    int Omega = int(    rotational +
+                        gauss(factors[10] * straight) +
+                        gauss(factors[11] * drift) +
+                        gauss(factors[12] * rotational) +
+                        gauss(factors[13] * wfactor) +
+                        gauss(factors[14])); 
+
+    Omega = Omega * DEG2RAD;
+    ROS_INFO("Forward = %d ,Side = %d ,Omega = %d ",Forward,Side,Omega);
+    int Theta =  rotation * DEG2RAD;
+    int x = 0;
+    int y = 0;
+    int Direction = 0;
+    int Dir2 = 0;
+    
+    if(Omega == 0)
+    {
+        Direction = Theta;
+        x = (   posx +
+                Forward * cos(Theta) * dt +
+                Side * sin(Theta) * dt);
+        y = (   posy -
+                Forward * sin(Theta) * dt +
+                Side * cos(Theta) * dt);
+    }else{
+        Direction = Theta + Omega * dt;
+        Dir2 = -Theta + Omega * dt;
+        x = (posx +
+            Forward / Omega * (sin(Direction) - sin(Theta)) -
+            Side / Omega * (cos(-Theta) - cos(Dir2)));
+        y = (posy -
+            Forward / Omega * (cos(Theta) - cos(Direction)) -
+            Side / Omega * (sin(-Theta) - sin(Dir2)));
+    }
+
+    if( x < regions[0].x || x > regions[0].y ||
+        y < regions[1].x || y > regions[1].y )
+    {
+        x = 0;
+        y = 0;
+    }
+
+    posx = x;
+    posy = y;
+    int rotat = Direction * RAD2DEG;
+
+    if(rotat > 180)
+    {
+        rotation = rotat - 360;
+    }else if(rotat < -180)
+    {
+        rotation = rotat + 360;
+    }else{
+        rotation = rotat;
+    }
+    ROS_INFO("posx = %d ,posy = %d ,rotation = %d ",posx,posy,rotation);
+}
+
+void ParticleFilter::GetUpBackUp()
+{
+    posx += int(gauss(7, 0));
+    posy += int(gauss(7, 0));
+    rotation += int(gauss(25, 0));
+}
+
+void ParticleFilter::GetUpFrontUp()
+{
+    posx += int(gauss(7,-30)*sin(rotation*DEG2RAD));
+    posy += int(gauss(7,-30)*cos(rotation*DEG2RAD));
+    rotation += int(gauss(25, 0));
+    GetUpBackUp();
+}
+
+void ParticleFilter::Movement(int straight, int drift, int rotational, int moving, int dt)
+{
+    if(moving == 1)
+    {
+        Motion(straight, drift, rotational, 1, 0);
+        ROS_INFO("1");
+    }else if(moving == 2)
+    {
+        GetUpBackUp();
+        ROS_INFO("2");
+
+    }else{
+        GetUpFrontUp();
+        ROS_INFO("3");
+    }
+}
+
+void ParticleFilter::StatePredict(vector<int> u)
+{
+    ROS_INFO("StatePredict");
+    vector<ParticlePoint> tmp;
+
+    //-------------add motion error coefficients---------------
+    for(int i = 0; i < particlepoint_num; ++i)
+    {
+        ParticlePoint current_particle;
+        Movement(u[0],u[1],u[2],u[3],u[4]);
+        current_particle.postion.X = posx;
+        current_particle.postion.Y = posy;
+        current_particle.angle = rotation;
+        tmp.push_back(current_particle);
+    }
+    particlepoint.clear();
+    particlepoint = tmp;
+    ROS_INFO("particlepoint size = %d",particlepoint.size());
+}
+
+// void ParticleFilter::Update(scan_line *feature_point_observation_data)
+// {
+//     totalweight = 0;
+//     for(int i = 0; i < particlepoint_num; i++)
+//     {
+//         particlepoint[i].fitness_value = 0;
+//         particlepoint[i].weight = 0.0;
+//         int real_feature_point_cnt = 0;
+
+//         for(int j = 0; j < particlepoint[i].featurepoint_scan_line.size(); j++) // scan_line:36
+//         {
+            
+            
+
+
+//         }
+//     }
+// }
+
+double ParticleFilter::ComputeAngLikelihoodDeg(double angle, double base, double std_deviation)
+{
+    float xa = cos(angle * DEG2RAD);
+    float ya = sin(angle * DEG2RAD);
+    float xb = cos(base * DEG2RAD);
+    float yb = sin(base * DEG2RAD);
+
+    float d = hypot(xa - xb, ya - yb);
+
+    float sa = cos(std_deviation * DEG2RAD);
+    float sb = sin(std_deviation * DEG2RAD);
+    float s = hypot(sa - 1, sb);
+
+    return exp(-pow(d, 2) / (2 * pow(s, 2)));
+}
+
 
 void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data)
 {
@@ -463,197 +751,37 @@ void ParticleFilter::FindRobotPosition(float x_avg, float y_avg)
     Robot_Position.angle = angle_tmp[particlepoint_num / 2];*/
 }
 
-int ParticleFilter::TournamentResample(int excellent_particle_num)
-{
-    int tournament_particle_num[excellent_particle_num] = {0};
-    int best_particle_num = 0;
-    float best_weight_value = 0.0;
-
-    for(int i = 0; i < excellent_particle_num; ++i)
-    {
-        tournament_particle_num[i] = rand()%particlepoint_num;
-        for(int j = 0; j < i; j++)
-        {
-            if(tournament_particle_num[i] == tournament_particle_num[j])
-            {
-                tournament_particle_num[i] = rand()%particlepoint_num;
-                j = -1;
-            }
-        }
-        if(particlepoint[tournament_particle_num[i]].weight > best_weight_value)
-        {
-            best_weight_value = particlepoint[tournament_particle_num[i]].weight;
-            best_particle_num = tournament_particle_num[i];
-        }
-    }
-    return best_particle_num;
-}
-
-double ParticleFilter::gauss(double sigma, double mu)
-{
-    std::random_device rd;
-    std::mt19937 generator(rd());
-    std::normal_distribution<> dist;
-    std::normal_distribution<> norm {mu, sigma};
-    return norm(rd);
-}
-
-void ParticleFilter::Motion(int straight, int drift, int rotational, int moving, int dt)
-{
-    int Forward = int(  straight +
-                        gauss(factors[0] * straight) +
-                        gauss(factors[1] * drift) +
-                        gauss(factors[2] * rotational) +
-                        gauss(factors[3] * wfactor) +
-                        gauss(factors[4]));
-    
-    int Side  = int(    drift +
-                        gauss(factors[5] * straight) +
-                        gauss(factors[6] * drift) +
-                        gauss(factors[7] * rotational) +
-                        gauss(factors[8] * wfactor) +
-                        gauss(factors[9]));
-
-    int Omega = int(    rotational +
-                        gauss(factors[10] * straight) +
-                        gauss(factors[11] * drift) +
-                        gauss(factors[12] * rotational) +
-                        gauss(factors[13] * wfactor) +
-                        gauss(factors[14])); 
-
-    Omega = Omega * DEG2RAD;
-    ROS_INFO("Forward = %d ,Side = %d ,Omega = %d ",Forward,Side,Omega);
-    int Theta =  rotation * DEG2RAD;
-    int x = 0;
-    int y = 0;
-    int Direction = 0;
-    int Dir2 = 0;
-    
-    
-    if(Omega == 0)
-    {
-        Direction = Theta;
-        x = (   posx +
-                Forward * cos(Theta) * dt +
-                Side * sin(Theta) * dt);
-        y = (   posy -
-                Forward * sin(Theta) * dt +
-                Side * cos(Theta) * dt);
-    }else{
-        Direction = Theta + Omega * dt;
-        Dir2 = -Theta + Omega * dt;
-        x = (posx +
-            Forward / Omega * (sin(Direction) - sin(Theta)) -
-            Side / Omega * (cos(-Theta) - cos(Dir2)));
-        y = (posy -
-            Forward / Omega * (cos(Theta) - cos(Direction)) -
-            Side / Omega * (sin(-Theta) - sin(Dir2)));
-    }
-
-    if( x < regions[0].x || x > regions[0].y ||
-        y < regions[1].x || y > regions[1].y )
-    {
-        x = 0;
-        y = 0;
-    }
-
-    posx = x;
-    posy = y;
-    int rotat = Direction * RAD2DEG;
-
-    if(rotat > 180)
-    {
-        rotation = rotat - 360;
-    }else if(rotat < -180)
-    {
-        rotation = rotat + 360;
-    }else{
-        rotation = rotat;
-    }
-    ROS_INFO("posx = %d ,posy = %d ,rotation = %d ",posx,posy,rotation);
-
-}
-
-void ParticleFilter::GetUpBackUp()
-{
-    posx += int(gauss(7, 0));
-    posy += int(gauss(7, 0));
-    rotation += int(gauss(25, 0));
-}
-void ParticleFilter::GetUpFrontUp()
-{
-    posx += int(gauss(7,-30)*sin(rotation*DEG2RAD));
-    posy += int(gauss(7,-30)*cos(rotation*DEG2RAD));
-    rotation += int(gauss(25, 0));
-    GetUpBackUp();
-}
-
-void ParticleFilter::Movement(int straight, int drift, int rotational, int moving, int dt)
-{
-    // if(moving == 1)
-    // {
-        Motion(straight, drift, rotational, 1, 0);
-        ROS_INFO("1");
-
-    // }else if(moving == 2)
-    // {
-    //     GetUpBackUp();
-    //     ROS_INFO("2");
-
-    // }else{
-    //     GetUpFrontUp();
-    //     ROS_INFO("3");
-
-    // }
-}
 
 
 
-void ParticleFilter::StatePredict(vector<int> u)
-{
-    ROS_INFO("StatePredict");
-    int rand_angle = rand_angle_init * 2 + 1;
-    int value_sum = 0;
-    float sum = 0.0;
-    int particle_num = 0;
-
-    if(excellent_particle_num > particlepoint_num)
-    {
-        excellent_particle_num = particlepoint_num;
-    }
-    ///////////////////////////Augmented_MCL ///////////////////////////
-    std::random_device rd, x_rd, y_rd;                                          //產生亂數種子                    //Produce the random seed
-    std::mt19937 generator(rd());                                               //使用梅森旋轉演算法產生亂數        //Use Mersenne Twister to produce the random
-    std::mt19937 x_generator(x_rd());
-    std::mt19937 y_generator(y_rd());
-    std::uniform_real_distribution<float> add_random_distribution(0.0, 1.0);    //設定機率分佈範圍（連續型均勻分佈） //Set the random distribution range(continuous)
-    std::uniform_real_distribution<float> x_random_distribution(550, MAP_LENGTH - 105), y_random_distribution(10, MAP_WIDTH - 10);
-    float reset_random_threshold = std::max(0.0, 1.0 - (weight_fast / weight_slow));
-    int rand_particle_cnt = 0;
-    ROS_INFO("reset_random_threshold = %f",reset_random_threshold);
-    ///////////////////////////Augmented_MCL ///////////////////////////
-    vector<ParticlePoint> tmp;
-
-    //ROS_INFO("continuous_x = %d",continuous_x);
-
-    //-------------add motion error coefficients---------------
-    for(int i = 0; i < particlepoint_num; ++i)
-    {
-        ParticlePoint current_particle;
-        Movement(u[0],u[1],u[2],u[3],u[4]);
-        current_particle.postion.X = posx;
-        current_particle.postion.Y = posy;
-        current_particle.angle = rotation;
-        tmp.push_back(current_particle);
-        ROS_INFO("posx = %d,posy = %d,rotation = %d",posx,posy,rotation);
-    }
-    particlepoint.clear();
-    particlepoint = tmp;
-    ROS_INFO("particlepoint size = %d",particlepoint.size());
 
 
+
+// void ParticleFilter::StatePredict(vector<int> u)
+// {
+    // ROS_INFO("StatePredict");
 
     //--------------orignal----------
+    // int rand_angle = rand_angle_init * 2 + 1;
+    // int value_sum = 0;
+    // float sum = 0.0;
+    // int particle_num = 0;
+
+    // if(excellent_particle_num > particlepoint_num)
+    // {
+    //     excellent_particle_num = particlepoint_num;
+    // }
+    // ///////////////////////////Augmented_MCL ///////////////////////////
+    // std::random_device rd, x_rd, y_rd;                                          //產生亂數種子                    //Produce the random seed
+    // std::mt19937 generator(rd());                                               //使用梅森旋轉演算法產生亂數        //Use Mersenne Twister to produce the random
+    // std::mt19937 x_generator(x_rd());
+    // std::mt19937 y_generator(y_rd());
+    // std::uniform_real_distribution<float> add_random_distribution(0.0, 1.0);    //設定機率分佈範圍（連續型均勻分佈） //Set the random distribution range(continuous)
+    // std::uniform_real_distribution<float> x_random_distribution(550, MAP_LENGTH - 105), y_random_distribution(10, MAP_WIDTH - 10);
+    // float reset_random_threshold = std::max(0.0, 1.0 - (weight_fast / weight_slow));
+    // int rand_particle_cnt = 0;
+    // ROS_INFO("reset_random_threshold = %f",reset_random_threshold);
+    ///////////////////////////Augmented_MCL ///////////////////////////
     // for(int i = 0; i < particlepoint_num; ++i)
     // { 
     //     double random = ((double)rand() / (RAND_MAX));
@@ -720,162 +848,93 @@ void ParticleFilter::StatePredict(vector<int> u)
     // ROS_INFO("particlepoint size = %d",particlepoint.size());
     // step_count = 0;
     // Step_flag = false;
-}
+// }
 
-void ParticleFilter::NoLookFiled()
+void ParticleFilter::NoLookField(vector<int> u)
 {
-    ROS_INFO("NoLookFiled");
+    ROS_INFO("NoLookField");
     if(Step_flag)
     {
-        float move_x = 0.0;
-        float move_y = 0.0;
-        float y_dir_angle = 0.0;
         for(int i = 0; i < particlepoint_num; ++i)
-        { 
-            particlepoint[i].angle = Angle_Adjustment(Robot_Position.angle);
-            if(continuous_y > 0)
-            {
-                float y_dir_angle = Angle_Adjustment(particlepoint[i].angle + 90.0);
-            }
-            else
-            {
-                float y_dir_angle = Angle_Adjustment(particlepoint[i].angle - 90.0);
-            }
-            move_x = cos(particlepoint[i].angle * DEG2RAD) * continuous_x / 1000 + cos(y_dir_angle * DEG2RAD) * continuous_y / 1000;
-            move_y = -(sin(particlepoint[i].angle * DEG2RAD) * continuous_x / 1000 + sin(y_dir_angle * DEG2RAD) * continuous_y / 1000);
-            move_x = 6.5 * move_x;
-            move_y = 6.5 * move_y;
-            if(step_count == 0)
-            {
-                particlepoint[i].postion.X = particlepoint[i].postion.X + (int)(move_x);
-                particlepoint[i].postion.Y = particlepoint[i].postion.Y + (int)(move_y);
-                //ROS_INFO("add the step");
-            }
-            else
-            {
-                particlepoint[i].postion.X = particlepoint[i].postion.X + (int)(move_x) * step_count;
-                particlepoint[i].postion.Y = particlepoint[i].postion.Y + (int)(move_y) * step_count;
-                //ROS_INFO("add the step");
-                //step_count = 0;
-            }
-        }
-        Robot_Position.angle = Angle_Adjustment(Robot_Position.angle);
-        if(continuous_y > 0)
         {
-            float y_dir_angle = Angle_Adjustment(Robot_Position.angle + 90.0);
+            posx = particlepoint[i].postion.X;
+            posy = particlepoint[i].postion.Y;
+            rotation = particlepoint[i].angle;
+            Movement(u[0],u[1],u[2],u[3],u[4]);          
+            particlepoint[i].postion.X = posx;
+            particlepoint[i].postion.Y = posy;
+            particlepoint[i].angle = rotation;
+            ROS_INFO("posx = %d,posy = %d,rotation = %d",posx,posy,rotation);
         }
-        else
-        {
-            float y_dir_angle = Angle_Adjustment(Robot_Position.angle - 90.0);
-        }
-        move_x = cos(Robot_Position.angle * DEG2RAD) * continuous_x / 1000 + cos(y_dir_angle * DEG2RAD) * continuous_y / 1000;
-        move_y = -(sin(Robot_Position.angle * DEG2RAD) * continuous_x / 1000 + sin(y_dir_angle * DEG2RAD) * continuous_y / 1000);
-        move_x = 6.5 * move_x;
-        move_y = 6.5 * move_y;
-        if(step_count == 0)
-        {
-            Robot_Position.postion.X = Robot_Position.postion.X + (int)(move_x);
-            Robot_Position.postion.Y = Robot_Position.postion.Y + (int)(move_y);
-            //ROS_INFO("add the step");
-        }
-        else
-        {
-            Robot_Position.postion.X = Robot_Position.postion.X + (int)(move_x) * step_count;
-            Robot_Position.postion.Y = Robot_Position.postion.Y + (int)(move_y) * step_count;
-            //ROS_INFO("add the step");
-            //step_count = 0;
-        }
+        posx = Robot_Position.postion.X;
+        posy = Robot_Position.postion.Y;
+        rotation = Robot_Position.angle;
+        Movement(u[0],u[1],u[2],u[3],u[4]); 
+        Robot_Position.postion.X = posx;
+        Robot_Position.postion.Y = posy;
+        Robot_Position.angle = rotation;
+        ROS_INFO("posx = %d,posy = %d,rotation = %d",posx,posy,rotation);
+
+        // float move_x = 0.0;
+        // float move_y = 0.0;
+        // float y_dir_angle = 0.0;
+        // for(int i = 0; i < particlepoint_num; ++i)
+        // { 
+        //     particlepoint[i].angle = Angle_Adjustment(Robot_Position.angle);
+        //     if(continuous_y > 0)
+        //     {
+        //         float y_dir_angle = Angle_Adjustment(particlepoint[i].angle + 90.0);
+        //     }
+        //     else
+        //     {
+        //         float y_dir_angle = Angle_Adjustment(particlepoint[i].angle - 90.0);
+        //     }
+        //     move_x = cos(particlepoint[i].angle * DEG2RAD) * continuous_x / 1000 + cos(y_dir_angle * DEG2RAD) * continuous_y / 1000;
+        //     move_y = -(sin(particlepoint[i].angle * DEG2RAD) * continuous_x / 1000 + sin(y_dir_angle * DEG2RAD) * continuous_y / 1000);
+        //     move_x = 6.5 * move_x;
+        //     move_y = 6.5 * move_y;
+        //     if(step_count == 0)
+        //     {
+        //         particlepoint[i].postion.X = particlepoint[i].postion.X + (int)(move_x);
+        //         particlepoint[i].postion.Y = particlepoint[i].postion.Y + (int)(move_y);
+        //         //ROS_INFO("add the step");
+        //     }
+        //     else
+        //     {
+        //         particlepoint[i].postion.X = particlepoint[i].postion.X + (int)(move_x) * step_count;
+        //         particlepoint[i].postion.Y = particlepoint[i].postion.Y + (int)(move_y) * step_count;
+        //         //ROS_INFO("add the step");
+        //         //step_count = 0;
+        //     }
+        // }
+        // Robot_Position.angle = Angle_Adjustment(Robot_Position.angle);
+        // if(continuous_y > 0)
+        // {
+        //     float y_dir_angle = Angle_Adjustment(Robot_Position.angle + 90.0);
+        // }
+        // else
+        // {
+        //     float y_dir_angle = Angle_Adjustment(Robot_Position.angle - 90.0);
+        // }
+        // move_x = cos(Robot_Position.angle * DEG2RAD) * continuous_x / 1000 + cos(y_dir_angle * DEG2RAD) * continuous_y / 1000;
+        // move_y = -(sin(Robot_Position.angle * DEG2RAD) * continuous_x / 1000 + sin(y_dir_angle * DEG2RAD) * continuous_y / 1000);
+        // move_x = 6.5 * move_x;
+        // move_y = 6.5 * move_y;
+        // if(step_count == 0)
+        // {
+        //     Robot_Position.postion.X = Robot_Position.postion.X + (int)(move_x);
+        //     Robot_Position.postion.Y = Robot_Position.postion.Y + (int)(move_y);
+        //     //ROS_INFO("add the step");
+        // }
+        // else
+        // {
+        //     Robot_Position.postion.X = Robot_Position.postion.X + (int)(move_x) * step_count;
+        //     Robot_Position.postion.Y = Robot_Position.postion.Y + (int)(move_y) * step_count;
+        //     //ROS_INFO("add the step");
+        //     //step_count = 0;
+        // }
         Step_flag = false;
     }
     localization_flag = false;
 }
 
-void ParticleFilter::KLD_Sampling()
-{
-    ROS_INFO("KLD_Sampling");
-    int current_num = 0;
-    int particlepoint_num_finish = min_particlepoint_num + 10;
-    non_empty_bin.clear();
-    //ROS_INFO("particle number is %d !!!!!!!!!!!!!!!!!!!!!!!!",particlepoint_num);
-
-    while(current_num < particlepoint_num && current_num < particlepoint_num_finish)
-    {
-        pointdata current_point;
-        current_point.pos.X = particlepoint[current_num].postion.X;
-        current_point.pos.Y = particlepoint[current_num].postion.Y;
-        current_point.theta = int(particlepoint[current_num].angle);
-
-        if(non_empty_bin.size() != 0)
-        {
-            for(int i = 0; i < non_empty_bin.size(); i++)
-            {
-                int dis_x = abs(current_point.pos.X - non_empty_bin[i].pos.X);
-                int dis_y = abs(current_point.pos.Y - non_empty_bin[i].pos.Y);
-                int dis = sqrt(pow(dis_x,2) + pow(dis_y,2));
-                //ROS_INFO("dis = %d",dis);
-                // ROS_INFO("current_point.pos.X = %d",current_point.pos.X);
-                // ROS_INFO("current_point.pos.Y = %d",current_point.pos.Y);
-                // ROS_INFO("particlepoint[current_num].postion.X = %d",particlepoint[current_num].postion.X);
-                // ROS_INFO("particlepoint[current_num].postion.Y = %d",particlepoint[current_num].postion.Y);
-                if(dis > 3)
-                {
-                    non_empty_bin.push_back(current_point);
-                    if(current_num >= min_particlepoint_num)
-                    {
-                        //ROS_INFO("non_empty_bin.size = %d",non_empty_bin.size());
-                        float kld_equation_1 = float((non_empty_bin.size() - 1)) / (2.0 * kld_err);
-                        //ROS_INFO("kld_equation_1 is %f !!!!!!!!!!!!!!!!!!!!!!!!",kld_equation_1);
-                        float kld_equation_2 = 1.0 - 2.0 / (9.0 * float((non_empty_bin.size() - 1)));
-                        //ROS_INFO("kld_equation_2 is %f !!!!!!!!!!!!!!!!!!!!!!!!",kld_equation_2);
-                        float kld_equation_3 = sqrt(2.0 / (9.0 * (non_empty_bin.size() - 1))) * kld_z;
-                        //ROS_INFO("kld_equation_3 is %f !!!!!!!!!!!!!!!!!!!!!!!!",kld_equation_3);
-                        particlepoint_num_finish = int(kld_equation_1 * pow((kld_equation_2 + kld_equation_3),3));  
-                    }    
-                    break;
-                    /*if(current_point.pos.Y != non_empty_bin[i].pos.Y)
-                    {
-                        if(current_point.theta != non_empty_bin[i].theta)
-                        {
-                            non_empty_bin.push_back(current_point);
-                            if(current_num >= min_particlepoint_num)
-                            {
-                                ROS_INFO("non_empty_bin.size = %d",non_empty_bin.size());
-                                float kld_equation_1 = float((non_empty_bin.size() - 1)) / (2.0 * kld_err);
-                                //ROS_INFO("kld_equation_1 is %f !!!!!!!!!!!!!!!!!!!!!!!!",kld_equation_1);
-                                float kld_equation_2 = 1.0 - 2.0 / (9.0 * float((non_empty_bin.size() - 1)));
-                                //ROS_INFO("kld_equation_2 is %f !!!!!!!!!!!!!!!!!!!!!!!!",kld_equation_2);
-                                float kld_equation_3 = sqrt(2.0 / (9.0 * (non_empty_bin.size() - 1))) * kld_z;
-                                //ROS_INFO("kld_equation_3 is %f !!!!!!!!!!!!!!!!!!!!!!!!",kld_equation_3);
-                                particlepoint_num = int(kld_equation_1 * pow((kld_equation_2 + kld_equation_3),3));
-                            }
-                            break;
-                        }
-                    }*/
-                }
-            }
-        }
-        else
-        {
-            non_empty_bin.push_back(current_point);
-        }
-        current_num++;
-        //ROS_INFO("particle number is %d !!!!!!!!!!!!!!!!!!!!!!!!",particlepoint_num);
-    }
-    non_empty_bin.clear();
-    particlepoint_num = particlepoint_num_finish;
-    if(particlepoint_num < min_particlepoint_num)
-    {
-        particlepoint_num = min_particlepoint_num;
-    }
-    else if(particlepoint_num > PARTICLNUM)
-    {
-        particlepoint_num = PARTICLNUM;
-    }
-    excellent_particle_num = particlepoint_num * 0.1;
-    if(excellent_particle_num > EXCELLENTPARTICLNUM)
-    {
-        excellent_particle_num = EXCELLENTPARTICLNUM;
-    }
-    ROS_INFO("particle number is %d !!!!!!!!!!!!!!!!!!!!!!!!",particlepoint_num);
-    ROS_INFO("KLD_Sampling end!!");
-}

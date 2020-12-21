@@ -122,6 +122,6 @@ class Localization_main : public Drawing
         vector<int> Velocityvalue;
         vector<scan_line> feature_point_observation_data;
 
-        Mat FOV_Filed;
+        Mat FOV_Field;
 };
 

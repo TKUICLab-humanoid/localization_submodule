@@ -332,19 +332,19 @@ void Localization_main::strategy_init()
 
     }
     ParticlePointinit();
-    Soccer_Filed = DrawFiled();
+    Soccer_Field = DrawField();
 
     observation_data.imagestate = false;
 }
 
 void Localization_main::strategy_main()
 {
-    //imshow("Soccer_Filed",Soccer_Filed);
+    //imshow("Soccer_Field",Soccer_Field);
     if(!observation_data.imagestate)
     {
-        NoLookFiled();
+        NoLookField(Velocityvalue);
         CalcFOVArea_averagepos(Camera_Focus, Image_Top_Length, Image_Bottom_Length, Image_Top_Width_Length, Image_Bottom_Width_Length, Horizontal_Head_Angle);
-        //imshow("FOV_Filed",DrawParticlePoint());
+        //imshow("FOV_Field",DrawParticlePoint());
         // imshow("RobotPos",DrawRobotPos());
     }
     else
@@ -367,13 +367,13 @@ void Localization_main::strategy_main()
             CalcFOVArea_averagepos(Camera_Focus, Image_Top_Length, Image_Bottom_Length, Image_Top_Width_Length, Image_Bottom_Width_Length, Horizontal_Head_Angle);
         }
         //observation_data.clear();
-        //imshow("FOV_Filed",DrawParticlePoint());
+        //imshow("FOV_Field",DrawParticlePoint());
         // namedWindow("ParticlePoint",WINDOW_NORMAL);
         // imshow("ParticlePoint",DrawParticlePoint());
         // namedWindow("RobotPos",WINDOW_AUTOSIZE);
         // imshow("RobotPos",DrawRobotPos());
     }
-    //FOV_Filed = DrawFOV();
+    //FOV_Field = DrawFOV();
     //particlepoint.clear();
 
     robot_pos.x = Robot_Position.postion.X;

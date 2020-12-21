@@ -92,7 +92,7 @@ class LocalizationBase
         vector<double> Angle_sin;
         vector<double> Angle_cos;
     public:
-        cv::Mat Soccer_Filed;
+        cv::Mat Soccer_Field;
     public:
         LocalizationBase();
         ~LocalizationBase();
