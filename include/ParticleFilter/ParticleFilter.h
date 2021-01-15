@@ -35,6 +35,8 @@ class ParticleFilter : public LocalizationBase
         bool localization_flag;
     public:
         vector<ParticlePoint> particlepoint;
+        vector<Point> FOV_tmp;
+
         vector<ParticlePoint> particlepoint_compare;
         vector<int> factors;
         ParticlePoint Robot_Position;
@@ -61,6 +63,7 @@ class ParticleFilter : public LocalizationBase
         void GetUpBackUp();
         void GetUpFrontUp();
         /////WMCL//////
+        void FindLineInFOV();
 
     public:
         ParticleFilter();
@@ -70,7 +73,7 @@ class ParticleFilter : public LocalizationBase
         void CalcFOVArea(int focus, int top, int bottom, int top_width, int bottom_width, float horizontal_head_angle);
         bool CheckPointArea(ParticlePoint *tmp, int x, int y);
         void FindFeaturePoint();
-        void FindBestParticle(scan_line *feature_point_observation_data);
+        void FindBestParticle(scan_line *feature_point_observation_data, all_linedata *Line_observation_data);
         void FindRobotPosition(float x_avg, float y_avg);
         int TournamentResample(int excellent_particle_num);
         void StatePredict(vector<int> u);

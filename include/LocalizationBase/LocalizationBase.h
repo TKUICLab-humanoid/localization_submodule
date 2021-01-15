@@ -64,6 +64,21 @@ struct scan_line
     vector<featuredata> feature_point;
 };
 
+struct LineINF
+{
+    coordinate end_point;
+    coordinate start_point;
+    coordinate center_point;
+    double Line_length;
+    double Line_theta;   
+};
+
+struct all_linedata
+{
+    vector<LineINF> Lineinformation;
+};
+
+
 struct ParticlePoint
 {
     coordinate postion;
@@ -79,6 +94,8 @@ struct ParticlePoint
     float FOV_dir;
 
     vector<scan_line> featurepoint_scan_line;
+    vector<all_linedata> allLineinformation;
+
 
     bool operator >(const ParticlePoint& rhs) const   //vector 使用struct型態 針對其中成員排序使用
 	{
@@ -96,7 +113,7 @@ class LocalizationBase
     public:
         LocalizationBase();
         ~LocalizationBase();
-
+        double Slope(Vec4i line);
         float Angle_Adjustment(float angle);
         void AngleLUT();
         int Frame_Area(int coordinate, int range);

@@ -92,6 +92,9 @@ Mat Drawing::DrawField()    //E223 field
 Mat Drawing::DrawFOV()
 {
     Mat tmp_FOV = Soccer_Field.clone();
+    // Mat tmp_FOV_LINE = Soccer_Field.clone();
+    // Mat Mask = Mat::zeros(Soccer_Field.rows,Soccer_Field.cols, CV_8UC3); 
+
     for(int i = 0; i < particlepoint.size(); i++)
     {
         FOV_Point_tmp.push_back(Point(particlepoint[i].FOV_Bottom_Right.X,particlepoint[i].FOV_Bottom_Right.Y));
@@ -104,7 +107,6 @@ Mat Drawing::DrawFOV()
 
         cv::polylines(tmp_FOV, FOV_Point_tmp, true, Scalar(128, 128, 128), 1);//第2個引數可以採用contour或者contours，均可
 	    //cv::fillPoly(tmp_FOV, ppt, npt,  1, Scalar(128, 128, 128));//fillPoly函式的第二個引數是二維陣列！！
-
         circle(tmp_FOV, Point(particlepoint[i].postion.X,particlepoint[i].postion.Y), 2, Scalar(255, 255, 0), 4);
     }
     FOV_Point_tmp.clear();

@@ -69,6 +69,28 @@ void Localization_main::GetObservationDataFunction(const tku_msgs::ObservationDa
 {
     observation_data = msg;
     feature_point_observation_data.clear();
+    Line_observation_data.clear();
+    
+    coordinate end_point;
+    coordinate start_point;
+    coordinate center_point;
+    double Line_length;
+    double Line_theta;   
+    for(int i = 0; i < msg.landmark.size(); i++)
+    {
+        all_linedata line_tmp;
+        for(int j = 0; j < msg.landmark[i].all_LineData.size(); i++)
+        {
+            LineINF lineinf;
+            lineinf.start_point = {(int)msg.landmark[i].all_LineData[j].start_point.x,(int)msg.landmark[i].all_LineData[j].start_point.y};
+            lineinf.end_point = {(int)msg.landmark[i].all_LineData[j].end_point.x,(int)msg.landmark[i].all_LineData[j].end_point.y};
+            lineinf.center_point = {(int)msg.landmark[i].all_LineData[j].center_point.x,(int)msg.landmark[i].all_LineData[j].center_point.y};
+            lineinf.Line_length = msg.landmark[i].all_LineData[j].Line_length;
+            lineinf.Line_theta = msg.landmark[i].all_LineData[j].Line_theta;
+            line_tmp.Lineinformation.push_back(lineinf);
+        }
+        Line_observation_data.push_back(line_tmp);
+    }
     for(int i = 0; i < msg.scan_line.size(); i++)
     {
         scan_line scan_tmp;
@@ -363,7 +385,7 @@ void Localization_main::strategy_main()
         FindFeaturePoint();
         if(observation_data.scan_line.size() > 0)
         {
-            FindBestParticle(&feature_point_observation_data[0]);
+            FindBestParticle(&feature_point_observation_data[0], &Line_observation_data[0]);
             CalcFOVArea_averagepos(Camera_Focus, Image_Top_Length, Image_Bottom_Length, Image_Top_Width_Length, Image_Bottom_Width_Length, Horizontal_Head_Angle);
         }
         //observation_data.clear();

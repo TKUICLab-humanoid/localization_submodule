@@ -120,6 +120,48 @@ void ParticleFilter::CalcFOVArea(int focus, int top, int bottom, int top_width, 
     }
 }
 
+void ParticleFilter::FindLineInFOV()
+{
+    Mat tmp_FOV_LINE = Soccer_Field.clone();
+    Mat Mask = Mat::zeros(Soccer_Field.rows,Soccer_Field.cols, CV_8UC3); 
+    for(int i = 0; i < particlepoint.size(); i++)
+    {
+        Mat x = Mat::zeros(Soccer_Field.rows,Soccer_Field.cols, CV_8UC3); 
+        Mask = Mat::zeros(Soccer_Field.rows,Soccer_Field.cols, CV_8UC3); 
+        FOV_tmp.push_back(Point(particlepoint[i].FOV_Bottom_Right.X,particlepoint[i].FOV_Bottom_Right.Y));
+        FOV_tmp.push_back(Point(particlepoint[i].FOV_Top_Right.X,particlepoint[i].FOV_Top_Right.Y));
+        FOV_tmp.push_back(Point(particlepoint[i].FOV_Top_Left.X,particlepoint[i].FOV_Top_Left.Y));
+        FOV_tmp.push_back(Point(particlepoint[i].FOV_Bottom_Left.X,particlepoint[i].FOV_Bottom_Left.Y));
+        cv::polylines(Mask, FOV_tmp, true, Scalar(255, 255, 255), -1);//第2個引數可以採用contour或者contours，均可
+        tmp_FOV_LINE.copyTo(x,Mask);
+        Canny(x, x, 100, 150, 3);
+        vector<Vec4i> lines_tmp;
+        HoughLinesP(x,lines_tmp,1,CV_PI/180,100,60,40); 
+        for(size_t j = 0 ; j < lines_tmp.size(); j++)
+        {
+            LineINF lineinf;
+            Vec4i X = lines_tmp[j];
+            double theta = Slope(X);
+
+            if(X[0] > X[2])
+            {
+                lineinf.start_point = {X[2],X[3]};
+                lineinf.end_point = {X[0],X[1]};
+            }else{
+                lineinf.start_point = {X[0],X[1]};
+                lineinf.end_point = {X[2],X[3]};
+            }
+            lineinf.center_point = {(X[2]+X[0])/2,(X[3]+X[1])/2};
+            lineinf.Line_length = sqrt(pow((X[0]-X[2]),2)+pow((X[1]-X[3]),2));
+            lineinf.Line_theta = theta;
+            particlepoint[i].allLineinformation[j].Lineinformation.push_back(lineinf);
+        }
+        lines_tmp.clear();
+    }
+}
+
+
+
 void ParticleFilter::CalcFOVArea_averagepos(int focus, int top, int bottom, int top_width, int bottom_width, float horizontal_head_angle)
 {
     Robot_Position.FOV_dir = Angle_Adjustment(Robot_Position.angle + horizontal_head_angle);
@@ -570,7 +612,7 @@ double ParticleFilter::ComputeAngLikelihoodDeg(double angle, double base, double
 }
 
 
-void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data)
+void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data, all_linedata *Line_observation_data)
 {
     ROS_INFO("FindBestParticle");
     
@@ -584,7 +626,7 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data)
         int real_feature_point_cnt = 0;
         x_avg += particlepoint[i].postion.X;
         y_avg += particlepoint[i].postion.Y;
-        for(int j = 0; j < particlepoint[i].featurepoint_scan_line.size(); j++)
+        for(int j = 0; j < particlepoint[i].featurepoint_scan_line.size(); j++)//36
         {
             real_feature_point_cnt += (*(feature_point_observation_data + j)).feature_point.size();
             if(particlepoint[i].featurepoint_scan_line[j].feature_point.size() == (*(feature_point_observation_data + j)).feature_point.size())
@@ -660,9 +702,31 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data)
                 particlepoint[i].fitness_value += (scan_line_fitness / (*(feature_point_observation_data + j)).feature_point.size());
             }
         }
-        particlepoint[i].weight = (float)particlepoint[i].fitness_value / (float)(real_feature_point_cnt * MAP_MAX_LENGTH);
+        FindLineInFOV();
+        for(int l = 0; l < particlepoint[i].allLineinformation.size(); l++)
+        {
+            int line_fitness = 0;
+            for(int m = 0; m < (*(Line_observation_data + l)).Lineinformation.size(); m++)
+            {
+                coordinate AB = { particlepoint[i].allLineinformation[l].Lineinformation[m].end_point.X - particlepoint[i].allLineinformation[l].Lineinformation[m].start_point.X, particlepoint[i].allLineinformation[l].Lineinformation[m].end_point.Y - particlepoint[i].allLineinformation[l].Lineinformation[m].start_point.Y };
+                coordinate AP = { (*(Line_observation_data + l) ).Lineinformation[m].start_point.X - particlepoint[i].allLineinformation[l].Lineinformation[m].start_point.X, (*(Line_observation_data+ l) ).Lineinformation[m].start_point.Y - particlepoint[i].allLineinformation[l].Lineinformation[m].start_point.Y };
+                double disAB = (particlepoint[i].allLineinformation[l].Lineinformation[m].start_point.X - particlepoint[i].allLineinformation[l].Lineinformation[m].end_point.X)*(particlepoint[i].allLineinformation[l].Lineinformation[m].start_point.X - particlepoint[i].allLineinformation[l].Lineinformation[m].end_point.X) + (particlepoint[i].allLineinformation[l].Lineinformation[m].start_point.Y-particlepoint[i].allLineinformation[l].Lineinformation[m].end_point.Y)*(particlepoint[i].allLineinformation[l].Lineinformation[m].start_point.Y-particlepoint[i].allLineinformation[l].Lineinformation[m].end_point.Y);
+                double disAP = (particlepoint[i].allLineinformation[l].Lineinformation[m].start_point.X - (*(Line_observation_data + l) ).Lineinformation[m].start_point.X)*(particlepoint[i].allLineinformation[l].Lineinformation[m].start_point.X - (*(Line_observation_data + l) ).Lineinformation[m].start_point.X) + (particlepoint[i].allLineinformation[l].Lineinformation[m].start_point.Y-(*(Line_observation_data + l) ).Lineinformation[m].start_point.Y)*(particlepoint[i].allLineinformation[l].Lineinformation[m].start_point.Y-(*(Line_observation_data + l) ).Lineinformation[m].start_point.Y);
+                double dot = AB.X*AP.X + AB.Y*AP.Y;
+                if(((particlepoint[i].allLineinformation[l].Lineinformation[m].Line_theta > (*(Line_observation_data + l) ).Lineinformation[m].Line_theta -1) && (particlepoint[i].allLineinformation[l].Lineinformation[m].Line_theta < (((*(Line_observation_data + l) ).Lineinformation[m].Line_theta )+1)) )&& (dot >= 0 && disAB >= disAP))
+                {
+                    line_fitness ++;
+                }
+            }
+            particlepoint[i].fitness_value += (line_fitness/ (*(Line_observation_data + l)).Lineinformation.size());
+        }
+
+        particlepoint[i].weight = (float)particlepoint[i].fitness_value / ((float)(real_feature_point_cnt * MAP_MAX_LENGTH)+(float)(particlepoint[i].allLineinformation.size()));
+        
+        
         weight_avg = weight_avg + particlepoint[i].weight;
     }
+
     x_avg = x_avg / (float)particlepoint_num;
     y_avg = y_avg / (float)particlepoint_num;
     weight_avg = weight_avg / (float)particlepoint_num;

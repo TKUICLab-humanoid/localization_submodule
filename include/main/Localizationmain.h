@@ -121,6 +121,7 @@ class Localization_main : public Drawing
         bool first_get_imu;
         vector<int> Velocityvalue;
         vector<scan_line> feature_point_observation_data;
+        vector<all_linedata> Line_observation_data;
 
         Mat FOV_Field;
 };
