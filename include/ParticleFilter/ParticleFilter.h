@@ -1,10 +1,16 @@
-#include <LocalizationBase/LocalizationBase.h>
+#include <FastSlam/FastSlam.h>
 #include <time.h>
 
 using namespace std;
 using namespace cv;
 
-class ParticleFilter : public LocalizationBase  
+enum class Landmarkmode
+{
+    PARTICLEPIONT = 1,
+    ROBOT = 2
+};
+
+class ParticleFilter : public FastSlam  
 {
     private:
         int rand_angle_init;
@@ -20,7 +26,7 @@ class ParticleFilter : public LocalizationBase
         
         //////////////////WMCL/////////////////
         float total_weight;
-
+        
 
 
         //////////////////Augmented_MCL//////////////////
@@ -36,13 +42,18 @@ class ParticleFilter : public LocalizationBase
     public:
         vector<ParticlePoint> particlepoint;
         vector<Point> FOV_tmp;
-
+        vector<FieldLine_data> field_list;
         vector<ParticlePoint> particlepoint_compare;
         vector<int> factors;
         ParticlePoint Robot_Position;
 
         bool Step_flag = false;
+        //noises for pose
+        Eigen::Vector3d noises;
 
+        //mesurement noise
+        Eigen::Matrix2d Q_;
+        
         int sendbodyauto_x;
         int sendbodyauto_y;
         int sendbodyauto_theta;
@@ -73,11 +84,12 @@ class ParticleFilter : public LocalizationBase
         void CalcFOVArea(int focus, int top, int bottom, int top_width, int bottom_width, float horizontal_head_angle);
         bool CheckPointArea(ParticlePoint *tmp, int x, int y);
         void FindFeaturePoint();
-        void FindBestParticle(scan_line *feature_point_observation_data, all_linedata *Line_observation_data);
+        void FindBestParticle(scan_line *feature_point_observation_data, LineINF *Line_observation_data);
         void FindRobotPosition(float x_avg, float y_avg);
         int TournamentResample(int excellent_particle_num);
         void StatePredict(vector<int> u);
         double ComputeAngLikelihoodDeg(double angle, double base, double std_deviation);
+        void LandMarkMode(Landmarkmode mode);
 
         //void CalcNewParticle();
 
@@ -90,6 +102,7 @@ class ParticleFilter : public LocalizationBase
 
         bool GetFindBestFlag(){return find_best_flag;}
         bool GetLocalizationFlag(){return localization_flag;}
+        void FindLandMarkInVirtualField(ParticlePoint *particlepoint);
 
         //bool compare_int(int a, int b);
 };

@@ -11,6 +11,7 @@
 #include <math.h>
 #include <algorithm>
 #include <vector>
+#include <eigen3/Eigen/Dense>
 
 #define MAP_LENGTH      1100
 #define MAP_WIDTH       800
@@ -24,23 +25,42 @@
 
 using namespace std;
 using namespace cv;
+using Eigen::MatrixXd;
+using Eigen::VectorXd;
 
-struct coordinate
+enum class LineType
 {
-    int X;
-    int Y;
+    Horizontal,
+    Vertical,
+    Slope
 };
+
+struct FieldLine_data
+{
+    LineType linetype;
+    float para_a; // y=ax+b
+    float para_b;
+    float x; // when x = value
+    Point start_point;
+    Point end_point;
+};
+
+// struct coordinate
+// {
+//     int X;
+//     int Y;
+// };
 
 struct pointdata
 {
-    coordinate pos;
+    Point pose;
     int theta;
 };
 
 struct featuredata
 {
-    int X;
-    int Y;
+    int x;
+    int y;
     int x_dis;
     int y_dis;
     int dis;
@@ -66,11 +86,15 @@ struct scan_line
 
 struct LineINF
 {
-    coordinate end_point;
-    coordinate start_point;
-    coordinate center_point;
+    Point end_point;
+    Point start_point;
+    Point center_point;
     double Line_length;
-    double Line_theta;   
+    double Line_theta;  
+    double distance;
+    Point Nearest_point;
+    Eigen::Vector2d mu;
+    Eigen::Matrix2d sigma;
 };
 
 struct all_linedata
@@ -78,24 +102,31 @@ struct all_linedata
     vector<LineINF> Lineinformation;
 };
 
+static bool tocompare(Vec4i &s1, Vec4i &s2){
+
+   return s1[0] > s2[0];
+}
 
 struct ParticlePoint
 {
-    coordinate postion;
-    coordinate FOV_Bottom_Right;
-    coordinate FOV_Bottom_Left;
-    coordinate FOV_Top_Right;
-    coordinate FOV_Top_Left;
+    Point FOV_corrdinate[4]; // 0:Top_Left 1:Top_right 2:Bottom_Right 3:Bottom_Left
+    Point postion;
+    Point FOV_Bottom_Right;
+    Point FOV_Bottom_Left;
+    Point FOV_Top_Right;
+    Point FOV_Top_Left;
+    float FOV_dir;
     
     int fitness_value;
     float weight;
+    float likehood;
     int particle_num;
     float angle;
-    float FOV_dir;
-
     vector<scan_line> featurepoint_scan_line;
-    vector<all_linedata> allLineinformation;
-
+    // vector<all_linedata> allLineinformation;
+    vector<LineINF> landmark_list;
+    
+    pointdata pos;
 
     bool operator >(const ParticlePoint& rhs) const   //vector 使用struct型態 針對其中成員排序使用
 	{
@@ -117,4 +148,13 @@ class LocalizationBase
         float Angle_Adjustment(float angle);
         void AngleLUT();
         int Frame_Area(int coordinate, int range);
+        int Cross(Point A, Point B, Point P);  //點P與線段AB位置關係
+        int intersect(Vec4i X, Vec4i Y);
+        Point IntersectPoint(Vec4i X, Vec4i Y);
+        double dis2(Point a, Point b);                //點a、b距離的平方
+        double MinDistance(Vec4i FOVbottom, Point A);
+        Point MinIntersectPoint(Vec4i line, Point A, double mindistance);
+        float normalize_angle(float phi) ;
+        LineINF LineInformation(Point A, Point B, Point Bottom_left, Point Bottom_right);
+
 };

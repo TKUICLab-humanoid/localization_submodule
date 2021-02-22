@@ -71,26 +71,24 @@ void Localization_main::GetObservationDataFunction(const tku_msgs::ObservationDa
     feature_point_observation_data.clear();
     Line_observation_data.clear();
     
-    coordinate end_point;
-    coordinate start_point;
-    coordinate center_point;
+    Point end_point;
+    Point start_point;
+    Point center_point;
     double Line_length;
     double Line_theta;   
     for(int i = 0; i < msg.landmark.size(); i++)
     {
-        all_linedata line_tmp;
-        for(int j = 0; j < msg.landmark[i].all_LineData.size(); i++)
-        {
-            LineINF lineinf;
-            lineinf.start_point = {(int)msg.landmark[i].all_LineData[j].start_point.x,(int)msg.landmark[i].all_LineData[j].start_point.y};
-            lineinf.end_point = {(int)msg.landmark[i].all_LineData[j].end_point.x,(int)msg.landmark[i].all_LineData[j].end_point.y};
-            lineinf.center_point = {(int)msg.landmark[i].all_LineData[j].center_point.x,(int)msg.landmark[i].all_LineData[j].center_point.y};
-            lineinf.Line_length = msg.landmark[i].all_LineData[j].Line_length;
-            lineinf.Line_theta = msg.landmark[i].all_LineData[j].Line_theta;
-            line_tmp.Lineinformation.push_back(lineinf);
-        }
-        Line_observation_data.push_back(line_tmp);
+        LineINF lineinf;
+        lineinf.start_point = Point((int)msg.landmark[i].start_point.x,(int)msg.landmark[i].start_point.y);
+        lineinf.end_point = Point((int)msg.landmark[i].end_point.x,(int)msg.landmark[i].end_point.y);
+        lineinf.center_point = Point((int)msg.landmark[i].center_point.x,(int)msg.landmark[i].center_point.y);
+        lineinf.Line_length = msg.landmark[i].Line_length;
+        lineinf.Line_theta = msg.landmark[i].Line_theta;
+        lineinf.distance = msg.landmark[i].relative_distance;
+        lineinf.Nearest_point = Point((int)msg.landmark[i].Nearest_point.x,(int)msg.landmark[i].Nearest_point.y);
+        Line_observation_data.push_back(lineinf);
     }
+    
     for(int i = 0; i < msg.scan_line.size(); i++)
     {
         scan_line scan_tmp;
@@ -229,8 +227,7 @@ void Localization_main::GetSetRobotPosFunction(const tku_msgs::SetRobotPos &msg)
 {
     if(msg.number == 0)
     {
-        Robot_Position.postion.X = msg.x;
-        Robot_Position.postion.Y = msg.y;
+        Robot_Position.postion = Point(msg.x,msg.y);
         Robot_Position.angle = msg.dir;
         robot_pos_x_init = msg.x;
         robot_pos_y_init = msg.y;
@@ -346,10 +343,10 @@ int main(int argc, char** argv)
 
 void Localization_main::strategy_init()
 {
-    if(Robot_Position.postion.X < 0 && Robot_Position.postion.Y < 0)
+    if(Robot_Position.postion.x < 0 && Robot_Position.postion.y < 0)
     {
-        Robot_Position.postion.X = robot_pos_x_init;
-        Robot_Position.postion.Y = robot_pos_y_init;
+        Robot_Position.postion.x = robot_pos_x_init;
+        Robot_Position.postion.y = robot_pos_y_init;
         Robot_Position.angle = robot_pos_dir_init;
 
     }
@@ -398,25 +395,25 @@ void Localization_main::strategy_main()
     //FOV_Field = DrawFOV();
     //particlepoint.clear();
 
-    robot_pos.x = Robot_Position.postion.X;
-    robot_pos.y = Robot_Position.postion.Y;
+    robot_pos.x = Robot_Position.postion.x;
+    robot_pos.y = Robot_Position.postion.y;
     robot_pos.dir = Robot_Position.angle;
     RobotPos_Publisher.publish(robot_pos);
 
     //tool->Delay(4000);
     //ROS_INFO("distance = %d",Robot_Position.featurepoint[18].dis);
     //ROS_INFO("distance_y = %d",Robot_Position.featurepoint[18].y_dis);
-    //ROS_INFO("Robot_pos_x = %d",Robot_Position.postion.X);
-    //ROS_INFO("Robot_pos_y = %d",Robot_Position.postion.Y);
+    //ROS_INFO("Robot_pos_x = %d",Robot_Position.postion.x);
+    //ROS_INFO("Robot_pos_y = %d",Robot_Position.postion.y);
 
-    /*ROS_INFO("FOV_Top_Right = %d",Robot_Position.FOV_Top_Right.X);
-    ROS_INFO("FOV_Top_Right = %d",Robot_Position.FOV_Top_Right.Y);
-    ROS_INFO("FOV_Bottom_Right = %d",Robot_Position.FOV_Bottom_Right.X);
-    ROS_INFO("FOV_Bottom_Right = %d",Robot_Position.FOV_Bottom_Right.Y);
-    ROS_INFO("FOV_Top_Left = %d",Robot_Position.FOV_Top_Left.X);
-    ROS_INFO("FOV_Top_Left = %d",Robot_Position.FOV_Top_Left.Y);
-    ROS_INFO("FOV_Bottom_Left = %d",Robot_Position.FOV_Bottom_Left.X);
-    ROS_INFO("FOV_Bottom_Left = %d",Robot_Position.FOV_Bottom_Left.Y);*/
+    /*ROS_INFO("FOV_Top_Right = %d",Robot_Position.FOV_Top_Right.x);
+    ROS_INFO("FOV_Top_Right = %d",Robot_Position.FOV_Top_Right.y);
+    ROS_INFO("FOV_Bottom_Right = %d",Robot_Position.FOV_Bottom_Right.x);
+    ROS_INFO("FOV_Bottom_Right = %d",Robot_Position.FOV_Bottom_Right.y);
+    ROS_INFO("FOV_Top_Left = %d",Robot_Position.FOV_Top_Left.x);
+    ROS_INFO("FOV_Top_Left = %d",Robot_Position.FOV_Top_Left.y);
+    ROS_INFO("FOV_Bottom_Left = %d",Robot_Position.FOV_Bottom_Left.x);
+    ROS_INFO("FOV_Bottom_Left = %d",Robot_Position.FOV_Bottom_Left.y);*/
 
     
     msg_DrawRobotPos = cv_bridge::CvImage(std_msgs::Header(), "bgr8", DrawRobotPos()).toImageMsg();

@@ -72,7 +72,7 @@ class Localization_main : public Drawing
         int loop_cnt;
         vector<int> loop_cnt_vector;
         vector<Distance> robot_pos_error_data;
-        vector<coordinate> robot_pos_data;
+        vector<Point> robot_pos_data;
         vector<float> weight_vector;
     private:
         ros::NodeHandle *nh;
@@ -121,7 +121,7 @@ class Localization_main : public Drawing
         bool first_get_imu;
         vector<int> Velocityvalue;
         vector<scan_line> feature_point_observation_data;
-        vector<all_linedata> Line_observation_data;
+        vector<LineINF> Line_observation_data;
 
         Mat FOV_Field;
 };

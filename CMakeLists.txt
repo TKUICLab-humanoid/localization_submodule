@@ -48,6 +48,7 @@ add_executable(localization
     src/main/Localizationmain.cpp
     src/Drawing/Drawing.cpp
     src/ParticleFilter/ParticleFilter.cpp
+    src/FastSlam/FastSlam.cpp
 )
 target_link_libraries(localization ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
