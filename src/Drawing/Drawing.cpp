@@ -62,11 +62,11 @@ Mat Drawing::DrawField()    //E223 field
     Mat Field(MAP_WIDTH, MAP_LENGTH, CV_8UC3, Scalar(0, 0, 0));
     Mat Field_edge;
     
-    vector<Point> field_point1 = {Point(102,122),Point(998,122),Point(102,628),Point(998,678)};
-    vector<Point> field_point2 = {Point(102,172),Point(298,172),Point(102,628),Point(298,628)};
-    vector<Point> field_point3 = {Point(802,172),Point(998,172),Point(802,628),Point(998,628)};
-    vector<Point> field_point4 = {Point(102,252),Point(198,252),Point(102,548),Point(198,548)};
-    vector<Point> field_point5 = {Point(902,252),Point(998,252),Point(902,548),Point(998,548)};
+    vector<Point> field_point1 = {Point(102,122),Point(998,122),Point(998,678),Point(102,678)};
+    vector<Point> field_point2 = {Point(102,172),Point(298,172),Point(298,628),Point(102,628)};
+    vector<Point> field_point3 = {Point(802,172),Point(998,172),Point(998,628),Point(802,628)};
+    vector<Point> field_point4 = {Point(102,252),Point(198,252),Point(198,548),Point(102,548)};
+    vector<Point> field_point5 = {Point(902,252),Point(998,252),Point(998,548),Point(902,548)};
     vector<Point> field_point6 = {Point(550,122),Point(550,678)};
 
     vector<vector<Point>> field_point = {field_point1,field_point2,field_point3,field_point4,field_point5,field_point6};

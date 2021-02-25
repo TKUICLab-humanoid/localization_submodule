@@ -118,10 +118,10 @@ struct ParticlePoint
     float FOV_dir;
     
     int fitness_value;
-    float weight;
-    float likehood;
+    double weight;
+    double likehood;
     int particle_num;
-    float angle;
+    double angle;
     vector<scan_line> featurepoint_scan_line;
     // vector<all_linedata> allLineinformation;
     vector<LineINF> landmark_list;

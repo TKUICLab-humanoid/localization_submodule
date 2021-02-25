@@ -137,14 +137,19 @@ void ParticleFilter::CalcFOVArea(int focus, int top, int bottom, int top_width, 
 
 void ParticleFilter::FindLandMarkInVirtualField(ParticlePoint *particlepoint)
 {
-    ROS_INFO("FindLandMarkInVirtualField");
+    // ROS_INFO("FindLandMarkInVirtualField");
     FieldLine_data FOV_function_data_tmp[4]; // To caculate FOV's linear function
     particlepoint->landmark_list.clear();
+    
     for(int j = 0; j < 4; j++)
     {
         Point FOV_tmp = particlepoint->FOV_corrdinate[j];
-        Point FOV_tmp1 = particlepoint->FOV_corrdinate[j+1];
         Point FOV_tmp2 = particlepoint->FOV_corrdinate[0];
+        Point FOV_tmp1 = Point(0,0);
+        if(j<3)
+        {
+            FOV_tmp1 = particlepoint->FOV_corrdinate[j+1];
+        }
         int x1 = 0;
         int y1 = 0;
         int x2 = 0;
@@ -157,10 +162,11 @@ void ParticleFilter::FindLandMarkInVirtualField(ParticlePoint *particlepoint)
             y2 = FOV_tmp1.y;
         }else{
             x1 = FOV_tmp.x;
-            y1 = FOV_tmp.x;
-            x2 = FOV_tmp2.y;
+            y1 = FOV_tmp.y;
+            x2 = FOV_tmp2.x;
             y2 = FOV_tmp2.y;
         }
+        // ROS_INFO("x1 = %d. y1 = %d, x2 = %d, y2 = %d",x1,y1,x2,y2);
         if((y1-y2) == 0)
         {
             if(x1<x2)
@@ -182,30 +188,39 @@ void ParticleFilter::FindLandMarkInVirtualField(ParticlePoint *particlepoint)
             }
         }    
     }
-
+    // ROS_INFO("FOV_function_data_tmp[0].start_point = %d,%d FOV_function_data_tmp[0].end_point = %d,%d",
+                // FOV_function_data_tmp[0].start_point.x,FOV_function_data_tmp[0].start_point.y,
+                // FOV_function_data_tmp[0].end_point.x,FOV_function_data_tmp[0].end_point.y);
     vector<Point> intersect_point_list;
     vector<Point> virtualpointinFOV;
     vector<Vec4i> detect_line_list;
-    for(int k = 0; k < field_list.size(); k++) // find the line in FOV (virtual field)
+    intersect_point_list.clear();
+    virtualpointinFOV.clear();
+    detect_line_list.clear();  
+    for(int k = 0; k < field_list.size()-1; k++) // find the line in FOV (virtual field)
     {
         Vec4i X = {field_list[k].start_point.x,field_list[k].start_point.y,field_list[k].end_point.x,field_list[k].end_point.y};
         int startpointinarea = CheckPointArea(particlepoint, X[0], X[1]);
         int endpointinarea = CheckPointArea(particlepoint, X[2], X[3]);
         if(startpointinarea == 1)
         {
+            // ROS_INFO("startpointinarea == 1");
             virtualpointinFOV.push_back(Point(X[0], X[1]));
         }else if(endpointinarea == 1)
         {
+            // ROS_INFO("endpointinarea == 1");
             virtualpointinFOV.push_back(Point(X[2], X[3]));
         }
-
+        int count;
         for(int l = 0; l < 4; l++)
         {
             Vec4i Y = {FOV_function_data_tmp[l].start_point.x,FOV_function_data_tmp[l].start_point.y,FOV_function_data_tmp[l].end_point.x,FOV_function_data_tmp[l].end_point.y};
+            count = 0;
             if(intersect(X,Y) == 1)//相交
             {
                 Point intersectpoint = IntersectPoint(X,Y);
-                intersect_point_list.push_back(intersectpoint); 
+                intersect_point_list.push_back(intersectpoint);
+                // ROS_INFO("intersectpoint = %d,%d",intersectpoint.x,intersectpoint.y);
             }else if(intersect(X,Y) == 2)//重合
             {
                 Vec4i tmp = {0,0,0,0};
@@ -214,11 +229,19 @@ void ParticleFilter::FindLandMarkInVirtualField(ParticlePoint *particlepoint)
                 {
                     tmp = {Y[0],Y[1],Y[2],Y[3]};
                     detect_line_list.push_back(tmp);
+                    // ROS_INFO("%d %d %d %d",tmp[0],tmp[1],tmp[2],tmp[3]);
                 }else{
                     tmp = {Y[2],Y[3],Y[1],Y[2]};
                     detect_line_list.push_back(tmp);
+                    // ROS_INFO("%d %d %d %d",tmp[0],tmp[1],tmp[2],tmp[3]);
                 }
+            }else{
+                count++;
             }  
+        }
+        if(count == 4)
+        {
+            break;
         }
         if(virtualpointinFOV.size() == 0) //FOV中無末端點
         {
@@ -230,10 +253,16 @@ void ParticleFilter::FindLandMarkInVirtualField(ParticlePoint *particlepoint)
                 {
                     tmp = {intersect_point_list[0].x,intersect_point_list[0].y,intersect_point_list[1].x,intersect_point_list[1].y};
                     detect_line_list.push_back(tmp);
+                    intersect_point_list.clear();
+                    // ROS_INFO("%d %d %d %d",tmp[0],tmp[1],tmp[2],tmp[3]);
                 }else{
                     tmp = {intersect_point_list[1].x,intersect_point_list[1].y,intersect_point_list[0].x,intersect_point_list[0].y};
                     detect_line_list.push_back(tmp);
+                    intersect_point_list.clear();
+                    // ROS_INFO("%d %d %d %d",tmp[0],tmp[1],tmp[2],tmp[3]);
                 }
+            }else{
+                intersect_point_list.clear();
             }
         }else if(virtualpointinFOV.size() != 0 && intersect_point_list.size() != 0) //FOV中有末端點且至少有一交點
         {
@@ -243,13 +272,25 @@ void ParticleFilter::FindLandMarkInVirtualField(ParticlePoint *particlepoint)
             {
                 tmp = {virtualpointinFOV[0].x,virtualpointinFOV[0].y,intersect_point_list[0].x,intersect_point_list[0].y};
                 detect_line_list.push_back(tmp);
+                intersect_point_list.clear();
+                virtualpointinFOV.clear();
+                // ROS_INFO("%d %d %d %d",tmp[0],tmp[1],tmp[2],tmp[3]);
             }else{
                 tmp = {intersect_point_list[0].x,intersect_point_list[0].y,virtualpointinFOV[0].x,virtualpointinFOV[0].y};
                 detect_line_list.push_back(tmp);
+                intersect_point_list.clear();
+                virtualpointinFOV.clear();
+                // ROS_INFO("%d %d %d %d",tmp[0],tmp[1],tmp[2],tmp[3]);
             }
         }
     }
     sort(detect_line_list.begin(), detect_line_list.end(), tocompare);
+    ROS_INFO("detect_line_list");
+    for(int n = 0; n < detect_line_list.size(); n++)
+    {
+        Vec4i tmp = detect_line_list[n];      
+        ROS_INFO("%d %d %d %d",tmp[0],tmp[1],tmp[2],tmp[3]);
+    }
     for(int m = 0; m < detect_line_list.size(); m++)
     {
         LineINF landmark_tmp;
@@ -257,9 +298,6 @@ void ParticleFilter::FindLandMarkInVirtualField(ParticlePoint *particlepoint)
         landmark_tmp = LineInformation(Point(tmp[0],tmp[1]),Point(tmp[2],tmp[3]),FOV_function_data_tmp[2].start_point,FOV_function_data_tmp[2].end_point);
         particlepoint->landmark_list.push_back(landmark_tmp);
     }
-    detect_line_list.clear();
-    intersect_point_list.clear();
-    virtualpointinFOV.clear();
 }
 
 void ParticleFilter::LandMarkMode(Landmarkmode mode)
@@ -322,7 +360,7 @@ void ParticleFilter::LandMarkMode(Landmarkmode mode)
 
 void ParticleFilter::CalcFOVArea_averagepos(int focus, int top, int bottom, int top_width, int bottom_width, float horizontal_head_angle)
 {
-    ROS_INFO("CalcFOVArea_averagepos");
+    // ROS_INFO("CalcFOVArea_averagepos");
     Robot_Position.FOV_dir = Angle_Adjustment(Robot_Position.angle + horizontal_head_angle);
 
     //coordinate Camera_Focus;
@@ -373,7 +411,7 @@ void ParticleFilter::CalcFOVArea_averagepos(int focus, int top, int bottom, int 
 
 bool ParticleFilter::CheckPointArea(ParticlePoint *tmp, int x, int y)
 {
-    ROS_INFO("CheckPointArea");
+    // ROS_INFO("CheckPointArea");
     int a = (tmp->FOV_Top_Left.x - tmp->FOV_Bottom_Left.x) * (y - tmp->FOV_Bottom_Left.y) - (tmp->FOV_Top_Left.y - tmp->FOV_Bottom_Left.y) * (x - tmp->FOV_Bottom_Left.x);
     int b = (tmp->FOV_Top_Right.x - tmp->FOV_Top_Left.x) * (y - tmp->FOV_Top_Left.y) - (tmp->FOV_Top_Right.y - tmp->FOV_Top_Left.y) * (x - tmp->FOV_Top_Left.x);
     int c = (tmp->FOV_Bottom_Right.x - tmp->FOV_Top_Right.x) * (y - tmp->FOV_Top_Right.y) - (tmp->FOV_Bottom_Right.y - tmp->FOV_Top_Right.y) * (x - tmp->FOV_Top_Right.x);
@@ -394,7 +432,6 @@ void ParticleFilter::FindFeaturePoint()
     ROS_INFO("FindFeaturePoint");
     for(int i = 0; i < particlepoint_num; i++)
     {
-        ROS_INFO("i = %d",i);
         if(particlepoint[i].featurepoint_scan_line.size() != 0)
         {
             particlepoint[i].featurepoint_scan_line.clear();
@@ -426,7 +463,6 @@ void ParticleFilter::FindFeaturePoint()
                 int y_ = r * Angle_sin[angle_be];
                 int x = Frame_Area(centerx + x_, Soccer_Field.cols);
                 int y = Frame_Area(centery - y_, Soccer_Field.rows);
-
                 if(x == 0 || x == (Soccer_Field.cols - 1) || y == 0 || y == (Soccer_Field.rows - 1))
                 {
                     if(!find_feature_flag)
@@ -881,10 +917,8 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
                 particlepoint[i].fitness_value += (scan_line_fitness / (*(feature_point_observation_data + j)).feature_point.size());
             }
         }
-        
-        // for(int l = 0; l < particlepoint_num; l++)
-        // {
-        FindLandMarkInVirtualField(&particlepoint[i]);//找出虛擬地圖的地標
+
+        //待修改
         for(int m = 0; m < particlepoint[i].landmark_list.size(); m++)//計算虛擬地圖中的地標相似性
         {
             Eigen::Vector2d expect_Z;
@@ -899,7 +933,7 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
             Eigen::Vector2d z_actual;
             z_actual << (*(Line_observation_data + m -1)).distance, (*(Line_observation_data + m -1)).Line_theta;
             Eigen::Vector2d z_diff = z_actual - expect_Z;
-            z_diff(1) = normalize_angle(z_diff(1));
+            z_diff(1) = Angle_Adjustment(z_diff(1));
             particlepoint[i].landmark_list[m-1].mu    = particlepoint[i].landmark_list[m-1].mu + K * z_diff;
             particlepoint[i].landmark_list[m-1].sigma = particlepoint[i].landmark_list[m-1].sigma - K * H * sig;
             //calculate the weight
@@ -907,9 +941,9 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
             particlepoint[i].likehood *= p;
         } 
         // }
-                                                                                       
+        ROS_INFO("particlepoint[%d].likehood = %f",i,particlepoint[i].likehood);                                                                               
         particlepoint[i].weight = (float)particlepoint[i].fitness_value / ((float)(real_feature_point_cnt * MAP_MAX_LENGTH))+(float)particlepoint[i].likehood;
-        ROS_INFO("particlepoint[%d].weight = %d",i,particlepoint[i].weight);
+        ROS_INFO("particlepoint[%d].weight = %f",i,particlepoint[i].weight);
         // int totalweight = 0;
         // totalweight += particlepoint[i].weight;
         // // weight_avg = weight_avg + particlepoint[i].weight;

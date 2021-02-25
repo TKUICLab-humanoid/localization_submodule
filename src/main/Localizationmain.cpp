@@ -63,6 +63,7 @@ void Localization_main::GetImageLengthDataFunction(const tku_msgs::ImageLengthDa
     Image_Bottom_Width_Length = msg.bottom_width;
     Horizontal_Head_Angle = msg.horizontal_head_angle;
     get_image_data = true;
+
 }
 
 void Localization_main::GetObservationDataFunction(const tku_msgs::ObservationData &msg)
@@ -380,10 +381,12 @@ void Localization_main::strategy_main()
         }
         CalcFOVArea(Camera_Focus, Image_Top_Length, Image_Bottom_Length, Image_Top_Width_Length, Image_Bottom_Width_Length, Horizontal_Head_Angle);
         FindFeaturePoint();
+        LandMarkMode(Landmarkmode::PARTICLEPIONT);
         if(observation_data.scan_line.size() > 0)
         {
             FindBestParticle(&feature_point_observation_data[0], &Line_observation_data[0]);
             CalcFOVArea_averagepos(Camera_Focus, Image_Top_Length, Image_Bottom_Length, Image_Top_Width_Length, Image_Bottom_Width_Length, Horizontal_Head_Angle);
+            LandMarkMode(Landmarkmode::ROBOT);
         }
         //observation_data.clear();
         //imshow("FOV_Field",DrawParticlePoint());

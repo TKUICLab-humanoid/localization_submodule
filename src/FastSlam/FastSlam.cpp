@@ -12,6 +12,7 @@ FastSlam::~FastSlam()
 
 void FastSlam::Initialize(ParticlePoint& p,unsigned int landmark_size, int _N = 50) 
 {
+    ROS_INFO("Initialize");
 //   noises << 0.005, 0.01, 0.005;
   Q_ << 0.1, 0, 0, 0.1;
   N = _N;
@@ -39,7 +40,7 @@ void FastSlam::Measurement_model(const ParticlePoint& p, int LandMarkID, Eigen::
     float delta_y = landmark_point.y-particle_point.y;
     double expect_distance   = sqrt(delta_x * delta_x + delta_y * delta_y);
     double expect_angle = normalize_angle(atan2(delta_y, delta_x) - p.angle);
-
+    
     h << expect_distance, expect_angle;
 
     //compute the Jacobian H of the measurement function h wrt to the landmark location
@@ -48,4 +49,5 @@ void FastSlam::Measurement_model(const ParticlePoint& p, int LandMarkID, Eigen::
     H(0, 1) = delta_y  / expect_distance;
     H(1, 0) = -delta_y / (expect_distance * expect_distance);
     H(1, 1) = delta_x / (expect_distance * expect_distance);
+
 }
