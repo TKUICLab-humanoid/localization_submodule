@@ -95,6 +95,7 @@ struct LineINF
     Point Nearest_point;
     Eigen::Vector2d mu;
     Eigen::Matrix2d sigma;
+    bool observed;
 };
 
 struct all_linedata
@@ -116,7 +117,6 @@ struct ParticlePoint
     Point FOV_Top_Right;
     Point FOV_Top_Left;
     float FOV_dir;
-    
     int fitness_value;
     double weight;
     double likehood;

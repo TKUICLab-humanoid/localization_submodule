@@ -80,7 +80,7 @@ class ParticleFilter : public FastSlam
         ParticleFilter();
         ~ParticleFilter();
 
-        void ParticlePointinit();
+        void ParticlePointinit(unsigned int landmark_size);
         void CalcFOVArea(int focus, int top, int bottom, int top_width, int bottom_width, float horizontal_head_angle);
         bool CheckPointArea(ParticlePoint *tmp, int x, int y);
         void FindFeaturePoint();

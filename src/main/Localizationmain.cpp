@@ -350,8 +350,8 @@ void Localization_main::strategy_init()
         Robot_Position.postion.y = robot_pos_y_init;
         Robot_Position.angle = robot_pos_dir_init;
 
-    }
-    ParticlePointinit();
+    }   
+    ParticlePointinit(Line_observation_data.size());
     Soccer_Field = DrawField();
 
     observation_data.imagestate = false;
