@@ -11,8 +11,8 @@
 #include "tku_msgs/SensorPackage.h"
 #include "tku_msgs/Interface.h"
 #include "tku_msgs/Parameter_message.h"
-#include "tku_msgs/RobotPos.h"
 #include "tku_msgs/SetRobotPos.h"
+#include "tku_msgs/LocalizationPos.h"
 
 //#include "tku_libs/TKU_tool.h"
 #include "tku_libs/RosCommunication.h"
@@ -79,7 +79,7 @@ class Localization_main : public Drawing
         ros::Timer timer_2;
 
         tku_msgs::SensorSet IMUDataRequest;
-        tku_msgs::RobotPos robot_pos;
+        tku_msgs::LocalizationPos localization_pos;
         tku_msgs::ObservationData observation_data;
 
         ros::Subscriber ImageLengthData_Subscriber;
@@ -93,7 +93,7 @@ class Localization_main : public Drawing
 		ros::Subscriber DIO_Ack_Subscriber;
 
         ros::Publisher  IMUDataRequest_Publisher; 
-        ros::Publisher  RobotPos_Publisher;
+        ros::Publisher  LocalizationPos_Publisher;
     private:
         int Camera_Focus;
         int Image_Top_Length;

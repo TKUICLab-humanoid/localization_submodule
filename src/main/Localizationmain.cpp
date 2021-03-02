@@ -25,7 +25,7 @@ Localization_main::Localization_main(ros::NodeHandle &nh)
     Start_Subscriber = nh.subscribe("/web/start", 10, &Localization_main::StartFunction,this);
     DIO_Ack_Subscriber = nh.subscribe("/package/FPGAack", 10, &Localization_main::DIOackFunction,this);
 
-    RobotPos_Publisher = nh.advertise<tku_msgs::RobotPos>("/localization/robotpos", 1000);
+    LocalizationPos_Publisher = nh.advertise<tku_msgs::LocalizationPos>("/localization/localizationpos", 1000);
 
     period_pre = 0.0;
     first_get_imu = false;
@@ -262,6 +262,7 @@ int main(int argc, char** argv)
         }
         else
         {
+            
             if(localization_main->is_start)
             {
                 reset_flag = true;
@@ -306,7 +307,6 @@ void Localization_main::strategy_init()
         Robot_Position.postion.X = robot_pos_x_init;
         Robot_Position.postion.Y = robot_pos_y_init;
         Robot_Position.angle = robot_pos_dir_init;
-
     }
     ParticlePointinit();
     Soccer_Filed = DrawFiled();
@@ -353,10 +353,11 @@ void Localization_main::strategy_main()
     //FOV_Filed = DrawFOV();
     //particlepoint.clear();
 
-    robot_pos.x = Robot_Position.postion.X;
-    robot_pos.y = Robot_Position.postion.Y;
-    robot_pos.dir = Robot_Position.angle;
-    RobotPos_Publisher.publish(robot_pos);
+    localization_pos.x = Robot_Position.postion.X;
+    localization_pos.y = Robot_Position.postion.Y;
+    localization_pos.dir = Robot_Position.angle;
+    localization_pos.robotFlag = robotFlag;
+    LocalizationPos_Publisher.publish(localization_pos);
 
     //tool->Delay(4000);
     //ROS_INFO("distance = %d",Robot_Position.featurepoint[18].dis);

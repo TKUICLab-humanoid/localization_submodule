@@ -35,6 +35,7 @@ class ParticleFilter : public LocalizationBase
         ParticlePoint Robot_Position;
 
         bool Step_flag = false;
+        bool robotFlag;
 
         int sendbodyauto_x;
         int sendbodyauto_y;

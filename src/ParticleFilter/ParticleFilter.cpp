@@ -34,6 +34,7 @@ ParticleFilter::ParticleFilter()
 
     localization_flag = true;
     find_best_flag = true;
+    robotFlag = false;
 
     AngleLUT();
 }
@@ -411,6 +412,7 @@ void ParticleFilter::FindRobotPosition(float x_avg, float y_avg)
     {
         ROS_INFO("varience is very small");
         Robot_Position = particlepoint_compare[0];
+        robotFlag = true;
         return;
     }
     for(int i = 0; i < particlepoint_num; i++)
@@ -423,6 +425,7 @@ void ParticleFilter::FindRobotPosition(float x_avg, float y_avg)
         {
             ROS_INFO("The best number = %d",i);
             Robot_Position = particlepoint_compare[i];
+            robotFlag = true;
             break;
         }
         else if(i == (particlepoint_num - 1))
@@ -431,6 +434,7 @@ void ParticleFilter::FindRobotPosition(float x_avg, float y_avg)
             Robot_Position.postion.X = x_avg;
             Robot_Position.postion.Y = y_avg;
             Robot_Position.angle = particlepoint_compare[0].angle;
+            robotFlag = false;
         }
     }
     /*int x_tmp[particlepoint_num] = {0};
