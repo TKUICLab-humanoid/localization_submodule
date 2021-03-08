@@ -434,6 +434,7 @@ void ParticleFilter::FindRobotPosition(float x_avg, float y_avg)
             Robot_Position.postion.X = x_avg;
             Robot_Position.postion.Y = y_avg;
             Robot_Position.angle = particlepoint_compare[0].angle;
+            Robot_Position.weight = 0.0;
             robotFlag = false;
         }
     }

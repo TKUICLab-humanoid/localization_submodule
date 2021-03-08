@@ -321,8 +321,8 @@ void Localization_main::strategy_main()
     {
         NoLookFiled();
         CalcFOVArea_averagepos(Camera_Focus, Image_Top_Length, Image_Bottom_Length, Image_Top_Width_Length, Image_Bottom_Width_Length, Horizontal_Head_Angle);
-        //imshow("FOV_Filed",DrawParticlePoint());
-        imshow("RobotPos",DrawRobotPos());
+        // //imshow("FOV_Filed",DrawParticlePoint());
+        // imshow("RobotPos",DrawRobotPos());
     }
     else
     {
@@ -345,10 +345,10 @@ void Localization_main::strategy_main()
         }
         //observation_data.clear();
         //imshow("FOV_Filed",DrawParticlePoint());
-        namedWindow("ParticlePoint",WINDOW_NORMAL);
-        imshow("ParticlePoint",DrawParticlePoint());
-        namedWindow("RobotPos",WINDOW_AUTOSIZE);
-        imshow("RobotPos",DrawRobotPos());
+        // namedWindow("ParticlePoint",WINDOW_NORMAL);
+        // imshow("ParticlePoint",DrawParticlePoint());
+        // namedWindow("RobotPos",WINDOW_AUTOSIZE);
+        // imshow("RobotPos",DrawRobotPos());
     }
     //FOV_Filed = DrawFOV();
     //particlepoint.clear();
@@ -356,6 +356,7 @@ void Localization_main::strategy_main()
     localization_pos.x = Robot_Position.postion.X;
     localization_pos.y = Robot_Position.postion.Y;
     localization_pos.dir = Robot_Position.angle;
+    localization_pos.weight = Robot_Position.weight;
     localization_pos.robotFlag = robotFlag;
     LocalizationPos_Publisher.publish(localization_pos);
 
