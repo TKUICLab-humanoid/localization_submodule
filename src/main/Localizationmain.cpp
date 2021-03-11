@@ -158,7 +158,7 @@ void Localization_main::GetSendBodyAutoFunction(const tku_msgs::Interface &msg)
     {
         continuous_x = msg.x;
         continuous_y = msg.y;
-        ROS_INFO("continuous_x_start = %d",continuous_x);
+        // ROS_INFO("continuous_x_start = %d",continuous_x);
     }
     else
     {
@@ -171,7 +171,7 @@ void Localization_main::GetContinuousValueFunction(const tku_msgs::Interface &ms
 {
     continuous_x = msg.x;
     continuous_y = msg.y;
-    ROS_INFO("continuous_x_forever = %d",continuous_x);
+    // ROS_INFO("continuous_x_forever = %d",continuous_x);
 }
 
 void Localization_main::GetWalkingParameterFunction(const tku_msgs::Parameter_message &msg)
@@ -182,7 +182,7 @@ void Localization_main::GetWalkingParameterFunction(const tku_msgs::Parameter_me
         timer.setPeriod(ros::Duration(period));
         period_pre = period;
     }
-    ROS_INFO("period = %f",period);
+    // ROS_INFO("period = %f",period);
 } 
 
 void Localization_main::GetSetRobotPosFunction(const tku_msgs::SetRobotPos &msg) 

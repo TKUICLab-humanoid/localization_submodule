@@ -46,7 +46,7 @@ ParticleFilter::~ParticleFilter()
 
 void ParticleFilter::ParticlePointinit()
 {
-    ROS_INFO("ParticlePointinit");
+    // ROS_INFO("ParticlePointinit");
     localization_flag = true;
     time_t t;
     srand((unsigned) time(&t));
@@ -66,7 +66,7 @@ void ParticleFilter::ParticlePointinit()
 
 void ParticleFilter::CalcFOVArea(int focus, int top, int bottom, int top_width, int bottom_width, float horizontal_head_angle)
 {
-    ROS_INFO("CalcFOVArea");
+    // ROS_INFO("CalcFOVArea");
     for(int i = 0; i < particlepoint_num; i++)
     {
         particlepoint[i].FOV_dir = Angle_Adjustment(particlepoint[i].angle + horizontal_head_angle);
@@ -169,7 +169,7 @@ bool ParticleFilter::CheckPointArea(ParticlePoint *tmp, int x, int y)
 
 void ParticleFilter::FindFeaturePoint()
 {
-    ROS_INFO("FindFeaturePoint");
+    // ROS_INFO("FindFeaturePoint");
     for(int i = 0; i < particlepoint_num; i++)
     {
         if(particlepoint[i].featurepoint_scan_line.size() != 0)
@@ -274,7 +274,7 @@ void ParticleFilter::FindFeaturePoint()
 
 void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data)
 {
-    ROS_INFO("FindBestParticle");
+    // ROS_INFO("FindBestParticle");
     float x_avg = 0.0;
     float y_avg = 0.0;
     for(int i = 0; i < particlepoint_num; i++)
@@ -366,18 +366,18 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data)
     x_avg = x_avg / (float)particlepoint_num;
     y_avg = y_avg / (float)particlepoint_num;
     weight_avg = weight_avg / (float)particlepoint_num;
-    ROS_INFO("weight_avg:%f", weight_avg);
+    // ROS_INFO("weight_avg:%f", weight_avg);
     weight_slow = weight_slow + alpha_slow * (weight_avg - weight_slow);
     weight_fast = weight_fast + alpha_fast * (weight_avg - weight_fast);
-    ROS_INFO("weight_slow:%f", weight_slow);
-    ROS_INFO("weight_fast:%f", weight_fast);
+    // ROS_INFO("weight_slow:%f", weight_slow);
+    // ROS_INFO("weight_fast:%f", weight_fast);
     particlepoint_compare = particlepoint;
     sort(particlepoint_compare.begin(), particlepoint_compare.end(), greater<ParticlePoint>());
     FindRobotPosition(x_avg, y_avg);
     ROS_INFO("weight:%f", particlepoint[0].weight);
-    ROS_INFO("weight_low:%f", particlepoint[particlepoint.size() - 1].weight);
-    ROS_INFO("x:%d", Robot_Position.postion.X);
-    ROS_INFO("y:%d", Robot_Position.postion.Y);
+    // ROS_INFO("weight_low:%f", particlepoint[particlepoint.size() - 1].weight);
+    // ROS_INFO("x:%d", Robot_Position.postion.X);
+    // ROS_INFO("y:%d", Robot_Position.postion.Y);
     //-------------判斷適應值太高的狀況就不更新---------
     if(particlepoint_compare[0].weight < 0.28)
     {
@@ -392,9 +392,9 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data)
 
 void ParticleFilter::FindRobotPosition(float x_avg, float y_avg)
 {
-    ROS_INFO("FindRobotPosition");
-    ROS_INFO("x_avg = %f",x_avg);
-    ROS_INFO("y_avg = %f",y_avg);
+    // ROS_INFO("FindRobotPosition");
+    // ROS_INFO("x_avg = %f",x_avg);
+    // ROS_INFO("y_avg = %f",y_avg);
     float x_varience = 0.0;
     float y_varience = 0.0;
     for(int i = 0; i < particlepoint_num; i++)
@@ -406,11 +406,11 @@ void ParticleFilter::FindRobotPosition(float x_avg, float y_avg)
     }
     x_varience = x_varience / (float)particlepoint_num;
     y_varience = y_varience / (float)particlepoint_num;
-    ROS_INFO("x_varience = %f",x_varience);
-    ROS_INFO("y_varience = %f",y_varience);
+    // ROS_INFO("x_varience = %f",x_varience);
+    // ROS_INFO("y_varience = %f",y_varience);
     if((x_varience <= 0.5) && (y_varience <= 0.5))
     {
-        ROS_INFO("varience is very small");
+        // ROS_INFO("varience is very small");
         Robot_Position = particlepoint_compare[0];
         robotFlag = true;
         return;
@@ -423,14 +423,14 @@ void ParticleFilter::FindRobotPosition(float x_avg, float y_avg)
         y_to_avg_error = pow(y_to_avg_error, 2);
         if((x_to_avg_error < x_varience) && (y_to_avg_error < y_varience))
         {
-            ROS_INFO("The best number = %d",i);
+            // ROS_INFO("The best number = %d",i);
             Robot_Position = particlepoint_compare[i];
             robotFlag = true;
             break;
         }
         else if(i == (particlepoint_num - 1))
         {
-            ROS_INFO("No find the best");
+            // ROS_INFO("No find the best");
             Robot_Position.postion.X = x_avg;
             Robot_Position.postion.Y = y_avg;
             Robot_Position.angle = particlepoint_compare[0].angle;
@@ -483,7 +483,7 @@ int ParticleFilter::TournamentResample(int excellent_particle_num)
 
 void ParticleFilter::StatePredict()
 {
-    ROS_INFO("StatePredict");
+    // ROS_INFO("StatePredict");
     int rand_angle = rand_angle_init * 2 + 1;
     int value_sum = 0;
     float sum = 0.0;
@@ -502,7 +502,7 @@ void ParticleFilter::StatePredict()
     std::uniform_real_distribution<float> x_random_distribution(550, MAP_LENGTH - 105), y_random_distribution(10, MAP_WIDTH - 10);
     float reset_random_threshold = std::max(0.0, 1.0 - (weight_fast / weight_slow));
     int rand_particle_cnt = 0;
-    ROS_INFO("reset_random_threshold = %f",reset_random_threshold);
+    // ROS_INFO("reset_random_threshold = %f",reset_random_threshold);
     ///////////////////////////Augmented_MCL ///////////////////////////
     vector<ParticlePoint> tmp;
 
@@ -513,7 +513,7 @@ void ParticleFilter::StatePredict()
         ParticlePoint current_particle;
         if(random < reset_random_threshold)
         {
-            ROS_INFO("Kidnapped");
+            // ROS_INFO("Kidnapped");
             find_best_flag = true;
             current_particle.postion.X = x_random_distribution(x_generator);
             current_particle.postion.Y = y_random_distribution(y_generator);
@@ -570,14 +570,14 @@ void ParticleFilter::StatePredict()
     }
     particlepoint.clear();
     particlepoint = tmp;
-    ROS_INFO("particlepoint size = %d",particlepoint.size());
+    // ROS_INFO("particlepoint size = %d",particlepoint.size());
     step_count = 0;
     Step_flag = false;
 }
 
 void ParticleFilter::NoLookFiled()
 {
-    ROS_INFO("NoLookFiled");
+    // ROS_INFO("NoLookFiled");
     if(Step_flag)
     {
         float move_x = 0.0;
@@ -645,7 +645,7 @@ void ParticleFilter::NoLookFiled()
 
 void ParticleFilter::KLD_Sampling()
 {
-    ROS_INFO("KLD_Sampling");
+    // ROS_INFO("KLD_Sampling");
     int current_num = 0;
     int particlepoint_num_finish = min_particlepoint_num + 10;
     non_empty_bin.clear();
@@ -729,6 +729,6 @@ void ParticleFilter::KLD_Sampling()
     {
         excellent_particle_num = EXCELLENTPARTICLNUM;
     }
-    ROS_INFO("particle number is %d !!!!!!!!!!!!!!!!!!!!!!!!",particlepoint_num);
-    ROS_INFO("KLD_Sampling end!!");
+    // ROS_INFO("particle number is %d !!!!!!!!!!!!!!!!!!!!!!!!",particlepoint_num);
+    // ROS_INFO("KLD_Sampling end!!");
 }
