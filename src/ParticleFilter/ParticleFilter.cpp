@@ -197,6 +197,8 @@ void ParticleFilter::FindFeaturePoint()
             bool find_feature_flag = false;
             int angle_be = (int)(Angle_Adjustment(angle));
             scan_line scan_tmp;
+            featuredata tmp;
+
             for (int r = InnerMsg; r <= OuterMsg; r++)
             {      
                 int x_ = r * Angle_cos[angle_be];
@@ -206,15 +208,6 @@ void ParticleFilter::FindFeaturePoint()
 
                 if(x == 0 || x == (Soccer_Filed.cols - 1) || y == 0 || y == (Soccer_Filed.rows - 1))
                 {
-                    if(!find_feature_flag)
-                    {
-                        featuredata tmp;
-                        tmp.X = -1;
-                        tmp.Y = -1;
-                        tmp.dis = -1;
-                        scan_tmp.feature_point.push_back(tmp);
-                    }
-                    particlepoint[i].featurepoint_scan_line.push_back(scan_tmp);
                     scan_line_cnt++;
                     break;
                 }
@@ -224,7 +217,6 @@ void ParticleFilter::FindFeaturePoint()
                     { 
                         if(Soccer_Filed.data[(y * Soccer_Filed.cols + x) * 3 + 0] == 255)
                         {
-                            featuredata tmp;
                             if(scan_tmp.feature_point.size() != 0)
                             {
                                 int x_dis = x - scan_tmp.feature_point[scan_tmp.feature_point.size() - 1].X;
@@ -254,20 +246,19 @@ void ParticleFilter::FindFeaturePoint()
                     }
                     else
                     {
-                        if(!find_feature_flag)
-                        {
-                            featuredata tmp;
-                            tmp.X = -1;
-                            tmp.Y = -1;
-                            tmp.dis = -1;
-                            scan_tmp.feature_point.push_back(tmp);
-                        }
-                        particlepoint[i].featurepoint_scan_line.push_back(scan_tmp);
                         scan_line_cnt++;
                         break;
                     }    
-                }           
+                }
             }
+            if(!find_feature_flag)
+            {
+                tmp.X = -1;
+                tmp.Y = -1;
+                tmp.dis = -1;
+                scan_tmp.feature_point.push_back(tmp);
+            }
+            particlepoint[i].featurepoint_scan_line.push_back(scan_tmp);
         }
     }
 }
