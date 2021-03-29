@@ -1,8 +1,5 @@
 #include "ParticleFilter/ParticleFilter.h"
 
-
-using Eigen::MatrixXd;
-
 ParticleFilter::ParticleFilter()
 {
     rand_angle_init = 5;
@@ -58,23 +55,19 @@ ParticleFilter::~ParticleFilter()
     Angle_cos.clear();
 }
 
-void ParticleFilter::ParticlePointinit(unsigned int landmark_size)
+/**Initialize the parameters**/
+void ParticleFilter::ParticlePointInitialize(unsigned int landmark_size)
 {
     ROS_INFO("ParticlePointinit");
     localization_flag = true;
-    time_t t;
-    srand((unsigned) time(&t));
     ParticlePoint tmp;
-    int rand_angle = rand_angle_init * 2 + 1;        //粒子隨機角度//大數   rand()%40 - 20 = -20 ~ 20
     Q_ << 0.1, 0, 0, 0.1;
+    // noise << 0.005, 0.01, 0.005;
     for (int i = 0; i < particlepoint_num; i++)
     {
-        tmp.angle = Angle_Adjustment(Robot_Position.angle + rand()%rand_angle - rand_angle_init);
-        tmp.postion.x = Robot_Position.postion.x + (rand() % 31 - 15);   //-3 ~ 3
-        tmp.postion.y = Robot_Position.postion.y + (rand() % 31 - 15);
-        tmp.likehood = 1.0 / particlepoint_num;
         tmp.pos.pose = Point(0,0);
-        tmp.pos.theta = 0.0;
+        tmp.pos.angle = 0.0;
+        tmp.likehood = 1.0 / particlepoint_num;
         tmp.landmark_list.resize(landmark_size);
         for (int j = 0; j < landmark_size; j++) 
         {
@@ -82,34 +75,422 @@ void ParticleFilter::ParticlePointinit(unsigned int landmark_size)
             tmp.landmark_list[j].mu << 0,0;
             tmp.landmark_list[j].sigma << 0, 0, 0, 0;
         }
-        //tmp.angle = 135.0;
-        //tmp.postion.x = 520;   //-3 ~ 3
-        //tmp.postion.y = 370;
         particlepoint.push_back(tmp);
     }
 }
 
+void ParticleFilter::StatePredict(vector<int> u)
+{
+    ROS_INFO("StatePredict");
+    vector<ParticlePoint> tmp;
+    //-------------add motion error coefficients---------------
+    for(int i = 0; i < particlepoint_num; ++i)
+    {
+        ParticlePoint current_particle;
+        Movement(u[0],u[1],u[2],u[3],u[4]);
+        current_particle.pos.pose.x = posx;
+        current_particle.pos.pose.y = posy;
+        current_particle.pos.angle = rotation;
+        tmp.push_back(current_particle);
+    }
+    particlepoint.clear();
+    particlepoint = tmp;
+    ROS_INFO("particlepoint size = %d",particlepoint.size());
+}
+
+void ParticleFilter::Movement(int straight, int drift, int rotational, int moving, int dt)
+{
+    // ROS_INFO("Movement");    
+    if(moving == 1)
+    {
+        Motion(straight, drift, rotational, moving, dt);
+        // ROS_INFO("1");
+    }else if(moving == 2)
+    {
+        GetUpBackUp();
+        // ROS_INFO("2");
+    }else if(moving == 3){
+        GetUpFrontUp();
+        // ROS_INFO("3");
+    }else{
+        Motion(0, 0, 0, 0, dt);
+    }
+}
+
+void ParticleFilter::Motion(int straight, int drift, int rotational, int moving, int dt)
+{
+    // ROS_INFO("Motion");    
+    int Forward = int(  straight +
+                        gauss(factors[0] * straight) +
+                        gauss(factors[1] * drift) +
+                        gauss(factors[2] * rotational) +
+                        gauss(factors[3] * wfactor) +
+                        gauss(factors[4]));
+    
+    int Side  = int(    drift +
+                        gauss(factors[5] * straight) +
+                        gauss(factors[6] * drift) +
+                        gauss(factors[7] * rotational) +
+                        gauss(factors[8] * wfactor) +
+                        gauss(factors[9]));
+
+    int Omega = int(    rotational +
+                        gauss(factors[10] * straight) +
+                        gauss(factors[11] * drift) +
+                        gauss(factors[12] * rotational) +
+                        gauss(factors[13] * wfactor) +
+                        gauss(factors[14])); 
+
+    Omega = Omega * DEG2RAD;
+    // ROS_INFO("Forward = %d ,Side = %d ,Omega = %d ",Forward,Side,Omega);
+    int Theta =  rotation * DEG2RAD;
+    int x = 0;
+    int y = 0;
+    int Direction = 0;
+    int Dir2 = 0;
+    
+    if(Omega == 0)
+    {
+        Direction = Theta;
+        x = (   posx +
+                Forward * cos(Theta) * dt +
+                Side * sin(Theta) * dt);
+        y = (   posy -
+                Forward * sin(Theta) * dt +
+                Side * cos(Theta) * dt);
+    }else{
+        Direction = Theta + Omega * dt;
+        Dir2 = -Theta + Omega * dt;
+        x = (posx +
+            Forward / Omega * (sin(Direction) - sin(Theta)) -
+            Side / Omega * (cos(-Theta) - cos(Dir2)));
+        y = (posy -
+            Forward / Omega * (cos(Theta) - cos(Direction)) -
+            Side / Omega * (sin(-Theta) - sin(Dir2)));
+    }
+
+    if( x < regions[0].x || x > regions[0].y ||
+        y < regions[1].x || y > regions[1].y )
+    {
+        x = 0;
+        y = 0;
+    }
+
+    posx = x;
+    posy = y;
+    float rotat = Direction * RAD2DEG;
+    rotation = normalize_angle(rotat);
+    // ROS_INFO("posx = %d ,posy = %d ,rotation = %d ",posx,posy,rotation);
+}
+
+void ParticleFilter::GetUpBackUp()
+{
+    // ROS_INFO("GetUpBackUp");    
+    posx += int(gauss(7, 0));
+    posy += int(gauss(7, 0));
+    rotation += int(gauss(25, 0));
+}
+
+void ParticleFilter::GetUpFrontUp()
+{   
+    // ROS_INFO("GetUpFrontUp");    
+    posx += int(gauss(7,-30)*sin(rotation*DEG2RAD));
+    posy += int(gauss(7,-30)*cos(rotation*DEG2RAD));
+    rotation += int(gauss(25, 0));
+    GetUpBackUp();
+}
+
+void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data, LineINF *Line_observation_data)
+{
+    ROS_INFO("FindBestParticle");
+    int factorweight = 1;
+    int fwl = -1;
+    // A_MCL (長期移動平均)
+    float x_avg = 0.0;
+    float y_avg = 0.0;
+    for(int i = 0; i < particlepoint_num; i++)
+    {
+        particlepoint[i].fitness_value = 0;
+        particlepoint[i].weight = 0.0;
+        int real_feature_point_cnt = 0;
+        x_avg += particlepoint[i].postion.x;
+        y_avg += particlepoint[i].postion.y;
+        for(int j = 0; j < particlepoint[i].featurepoint_scan_line.size(); j++)//36
+        {
+            real_feature_point_cnt += (*(feature_point_observation_data + j)).feature_point.size();
+            if(particlepoint[i].featurepoint_scan_line[j].feature_point.size() == (*(feature_point_observation_data + j)).feature_point.size())
+            {
+                int scan_line_fitness = 0.0;
+                for(int k = 0; k < particlepoint[i].featurepoint_scan_line[j].feature_point.size(); k++)
+                {
+                    if((*(feature_point_observation_data + j)).feature_point[k].dis < 0)
+                    {
+                        if(particlepoint[i].featurepoint_scan_line[j].feature_point[k].dis < 0)
+                        {
+                            scan_line_fitness += MAP_MAX_LENGTH;
+                        }
+                    }
+                    else
+                    {
+                        if(particlepoint[i].featurepoint_scan_line[j].feature_point[k].dis > 0)
+                        {
+                            int Dis_error = abs((*(feature_point_observation_data + j)).feature_point[k].dis - particlepoint[i].featurepoint_scan_line[j].feature_point[k].dis);
+                            Dis_error = abs(MAP_MAX_LENGTH - Dis_error);
+                            scan_line_fitness = scan_line_fitness + Dis_error;
+                        }
+                    }
+                }
+                particlepoint[i].fitness_value += (scan_line_fitness / particlepoint[i].featurepoint_scan_line[j].feature_point.size());
+            }
+            else if(particlepoint[i].featurepoint_scan_line[j].feature_point.size() > (*(feature_point_observation_data + j)).feature_point.size())
+            {
+                int scan_line_fitness = 0;
+                for(int k = 0; k < (*(feature_point_observation_data + j)).feature_point.size(); k++)
+                {
+                    if((*(feature_point_observation_data + j)).feature_point[k].dis < 0)
+                    {
+                        if(particlepoint[i].featurepoint_scan_line[j].feature_point[k].dis < 0)
+                        {
+                            scan_line_fitness += MAP_MAX_LENGTH;
+                        }
+                    }
+                    else
+                    {
+                        if(particlepoint[i].featurepoint_scan_line[j].feature_point[k].dis > 0)
+                        {
+                            int Dis_error = abs((*(feature_point_observation_data + j)).feature_point[k].dis - particlepoint[i].featurepoint_scan_line[j].feature_point[k].dis);
+                            Dis_error = abs(MAP_MAX_LENGTH - Dis_error);
+                            scan_line_fitness = scan_line_fitness + Dis_error;
+                        }
+                    }
+                }
+                particlepoint[i].fitness_value += (scan_line_fitness / particlepoint[i].featurepoint_scan_line[j].feature_point.size());
+            }
+            else
+            {
+                int scan_line_fitness = 0;
+                for(int k = 0; k < particlepoint[i].featurepoint_scan_line[j].feature_point.size(); k++)
+                {
+                    if((*(feature_point_observation_data + j)).feature_point[k].dis < 0)
+                    {
+                        if(particlepoint[i].featurepoint_scan_line[j].feature_point[k].dis < 0)
+                        {
+                            scan_line_fitness += MAP_MAX_LENGTH;
+                        }
+                    }
+                    else
+                    {
+                        if(particlepoint[i].featurepoint_scan_line[j].feature_point[k].dis > 0)
+                        {
+                            int Dis_error = abs((*(feature_point_observation_data + j)).feature_point[k].dis - particlepoint[i].featurepoint_scan_line[j].feature_point[k].dis);
+                            Dis_error = abs(MAP_MAX_LENGTH - Dis_error);
+                            scan_line_fitness = scan_line_fitness + Dis_error;
+                        }
+                    }
+                }
+                particlepoint[i].fitness_value += (scan_line_fitness / (*(feature_point_observation_data + j)).feature_point.size());
+            }
+        }
+
+        //待修改
+        for(int m = 0; m < particlepoint[i].landmark_list.size(); m++)//計算虛擬地圖中的地標相似性
+        {
+            Pointdata robot = {Point(0,0),0};
+            robot.pose = particlepoint[i].pos.pose;
+            robot.angle = particlepoint[i].pos.angle;
+            if((m -1) >= 0)
+            {
+                if (!particlepoint[i].landmark_list[m-1].observed) 
+                {
+                    ROS_INFO("if not seen before");
+                    double gx = robot.pose.x + particlepoint[i].landmark_list[m].distance * cos(robot.angle + particlepoint[i].landmark_list[m].Line_theta);
+                    double gy = robot.pose.y + particlepoint[i].landmark_list[m].distance * sin(robot.angle + particlepoint[i].landmark_list[m].Line_theta);
+
+                    particlepoint[i].landmark_list[m-1].mu << gx, gy;
+                    //get the Jacobian with respect to the landmark position
+                    Eigen::MatrixXd H;
+                    Eigen::Vector2d h;
+                    Measurement_model(particlepoint[i], m, h, H);
+                    //initialize the ekf for this landmark
+                    MatrixXd Hi = H.inverse();
+                    particlepoint[i].landmark_list[m-1].sigma = Hi * Q_ * Hi.transpose();
+                    particlepoint[i].landmark_list[m-1].observed = true;
+
+                }else{
+                    ROS_INFO("seen before");
+                    Eigen::Vector2d expect_Z;
+                    Eigen::MatrixXd H;
+                    Measurement_model(particlepoint[i],m, expect_Z, H) ;
+                    //compute the measurement covariance
+                    Eigen::MatrixXd sig = particlepoint[i].landmark_list[m - 1].sigma;
+                    Eigen::MatrixXd Q   = H * sig * H.transpose() + Q_;
+                    //calculate the Kalman gain K
+                    Eigen::MatrixXd K = sig * H.transpose() * Q.inverse();
+                    //calculat the error between the z and expected Z
+                    Eigen::Vector2d z_actual;
+                    if(Line_observation_data_flag == true)
+                    {
+                        if(m < Line_observation_data_Size-1)
+                        {
+                            ROS_INFO("(*(Line_observation_data + m)).distance = %f",(*(Line_observation_data + m)).distance);
+                            ROS_INFO("(*(Line_observation_data + m)).Line_theta = %f",(*(Line_observation_data + m)).Line_theta);
+                            z_actual << (*(Line_observation_data + m)).distance, (*(Line_observation_data + m)).Line_theta;
+                        }else{
+                            z_actual << 0.0, 0.0;
+                        }
+                    }else{
+                        z_actual << 0.0, 0.0;
+                    }
+                    Eigen::Vector2d z_diff = z_actual - expect_Z;
+                    z_diff(1) = normalize_angle(z_diff(1));
+                    // cout<<" sig "<< endl << sig <<endl;
+                    // cout<<" Q " << endl <<  Q <<endl;
+                    // cout<<" K " << endl <<  K <<endl;            
+                    particlepoint[i].landmark_list[m-1].mu    = particlepoint[i].landmark_list[m-1].mu + K * z_diff;
+                    particlepoint[i].landmark_list[m-1].sigma = particlepoint[i].landmark_list[m-1].sigma - K * H * sig;
+                    ROS_INFO("particlepoint[%d].landmark_list[m-1].mu = %f",i,particlepoint[i].landmark_list[m-1].mu);    
+                    ROS_INFO("particlepoint[%d].landmark_list[m-1].sigma = %f",i,particlepoint[i].landmark_list[m-1].sigma); 
+                    //calculate the weight
+                    double p = exp(-0.5*z_diff.transpose()*Q.inverse()*z_diff)/sqrt(2 * PI * Q.determinant());
+                    // ROS_INFO("p = %f, exp(-0.5*z_diff.transpose()*Q.inverse()*z_diff) = %f,sqrt(2 * PI * Q.determinant()) = %f",p,exp(-0.5*z_diff.transpose()*Q.inverse()*z_diff),sqrt(2 * PI * Q.determinant()));    
+                    particlepoint[i].likehood *= p;
+                    // ROS_INFO("particlepoint[%d].likehood = %f",i,particlepoint[i].likehood);    
+                }
+            }    
+        } 
+        // ROS_INFO("particlepoint[%d].likehood = %f",i,particlepoint[i].likehood);                                                                               
+        particlepoint[i].weight = (float)particlepoint[i].fitness_value / ((float)(real_feature_point_cnt * MAP_MAX_LENGTH))+(float)particlepoint[i].likehood;
+        // ROS_INFO("particlepoint[%d].weight = %f",i,particlepoint[i].weight);
+        int totalweight = 0;
+        totalweight += particlepoint[i].weight;
+        // // weight_avg = weight_avg + particlepoint[i].weight;
+    }
+
+    x_avg = x_avg / (float)particlepoint_num;
+    y_avg = y_avg / (float)particlepoint_num;
+    // weight_avg = weight_avg / (float)particlepoint_num;
+    // ROS_INFO("weight_avg:%f", weight_avg);
+    // weight_slow = weight_slow + alpha_slow * (weight_avg - weight_slow);
+    // weight_fast = weight_fast + alpha_fast * (weight_avg - weight_fast);
+    // ROS_INFO("weight_slow:%f", weight_slow);
+    // ROS_INFO("weight_fast:%f", weight_fast);
+    particlepoint_compare = particlepoint;
+    sort(particlepoint_compare.begin(), particlepoint_compare.end(), greater<ParticlePoint>());
+    FindRobotPosition(x_avg, y_avg);
+    ROS_INFO("weight:%f", particlepoint[0].weight);
+    ROS_INFO("weight_low:%f", particlepoint[particlepoint.size() - 1].weight);
+    ROS_INFO("x:%d", Robot_Position.postion.x);
+    ROS_INFO("y:%d", Robot_Position.postion.y);
+    //-------------判斷適應值太高的狀況就不更新---------
+    if(particlepoint_compare[0].weight < 0.28)
+    {
+        find_best_flag = false;
+    }
+    else
+    {
+        find_best_flag = true;
+    }
+    //-------------判斷適應值太高的狀況就不更新---------
+}
+
+int ParticleFilter::TournamentResample(int excellent_particle_num)
+{
+    ROS_INFO("TournamentResample");
+    int tournament_particle_num[excellent_particle_num] = {0};
+    int best_particle_num = 0;
+    float best_weight_value = 0.0;
+
+    for(int i = 0; i < excellent_particle_num; ++i)
+    {
+        tournament_particle_num[i] = rand()%particlepoint_num;
+        for(int j = 0; j < i; j++)
+        {
+            if(tournament_particle_num[i] == tournament_particle_num[j])
+            {
+                tournament_particle_num[i] = rand()%particlepoint_num;
+                j = -1;
+            }
+        }
+        if(particlepoint[tournament_particle_num[i]].weight > best_weight_value)
+        {
+            best_weight_value = particlepoint[tournament_particle_num[i]].weight;
+            best_particle_num = tournament_particle_num[i];
+        }
+    }
+    
+    return best_particle_num;
+}
+
+void ParticleFilter::GetBestPoseAndLandmark(VectorXd& mu_ )
+{
+    int index = TournamentResample(excellent_particle_num);
+    ParticlePoint& current_particle = particlepoint[index];
+    int N_ = current_particle.landmark_list.size();
+      
+    mu_ = Eigen::VectorXd::Zero(2 * N_ + 3);
+    mu_(0) = current_particle.pos.angle;
+    mu_(1) = current_particle.pos.pose.x;
+    mu_(2) = current_particle.pos.pose.y;
+
+    for (int i = 0; i < N_; i++) {
+        mu_(2 * i + 3) = current_particle.landmark_list[i].mu(0);
+        mu_(2 * i + 4) = current_particle.landmark_list[i].mu(1);
+    }
+}
+
+// void ParticleFilter::ParticlePointInitialize(unsigned int landmark_size)
+// {
+//     ROS_INFO("ParticlePointinit");
+//     localization_flag = true;
+//     // time_t t;
+//     // srand((unsigned) time(&t));
+//     ParticlePoint tmp;
+//     // int rand_angle = rand_angle_init * 2 + 1;        //粒子隨機角度//大數   rand()%40 - 20 = -20 ~ 20
+//     Q_ << 0.1, 0, 0, 0.1;
+//     for (int i = 0; i < particlepoint_num; i++)
+//     {
+//         //原本
+//         // tmp.angle = normalize_angle(Robot_Position.angle + rand()%rand_angle - rand_angle_init);
+//         // tmp.postion.x = Robot_Position.postion.x + (rand() % 31 - 15);   //-3 ~ 3
+//         // tmp.postion.y = Robot_Position.postion.y + (rand() % 31 - 15);
+        
+//         tmp.pos.pose = Point(0,0);
+//         tmp.pos.angle = 0.0;
+//         tmp.likehood = 1.0 / particlepoint_num;
+//         tmp.landmark_list.resize(landmark_size);
+//         for (int j = 0; j < landmark_size; j++) 
+//         {
+//             tmp.landmark_list[j].observed = false;
+//             tmp.landmark_list[j].mu << 0,0;
+//             tmp.landmark_list[j].sigma << 0, 0, 0, 0;
+//         }
+//         //tmp.angle = 135.0;
+//         //tmp.postion.x = 520;   //-3 ~ 3
+//         //tmp.postion.y = 370;
+//         particlepoint.push_back(tmp);
+//     }
+// }
 void ParticleFilter::CalcFOVArea(int focus, int top, int bottom, int top_width, int bottom_width, float horizontal_head_angle)
 {
     ROS_INFO("CalcFOVArea");
     for(int i = 0; i < particlepoint_num; i++)
     {
-        particlepoint[i].FOV_dir = Angle_Adjustment(particlepoint[i].angle + horizontal_head_angle);
+        particlepoint[i].FOV_dir = normalize_angle(particlepoint[i].angle + horizontal_head_angle);
 
         //coordinate Camera_Focus;
 
         float HFOV_2D_bottom = atan2(bottom_width,bottom) * 180 / PI;
-        HFOV_2D_bottom = Angle_Adjustment(HFOV_2D_bottom);
+        HFOV_2D_bottom = normalize_angle(HFOV_2D_bottom);
         float HFOV_2D_top = atan2(top_width,top) * 180 / PI;
-        HFOV_2D_top = Angle_Adjustment(HFOV_2D_top);
+        HFOV_2D_top = normalize_angle(HFOV_2D_top);
 
         //Camera_Focus.x = particlepoint[i].postion.x + focus * cos(FOV_dir * DEG2RAD);
         //Camera_Focus.y = particlepoint[i].postion.y + focus * sin(FOV_dir * DEG2RAD);
 
-        float right_sight_top_angle = Angle_Adjustment(particlepoint[i].FOV_dir - HFOV_2D_top);
-        float right_sight_bottom_angle = Angle_Adjustment(particlepoint[i].FOV_dir - HFOV_2D_bottom);
-        float left_sight_top_angle = Angle_Adjustment(particlepoint[i].FOV_dir + HFOV_2D_top);
-        float left_sight_bottom_angle = Angle_Adjustment(particlepoint[i].FOV_dir + HFOV_2D_bottom);
+        float right_sight_top_angle = normalize_angle(particlepoint[i].FOV_dir - HFOV_2D_top);
+        float right_sight_bottom_angle = normalize_angle(particlepoint[i].FOV_dir - HFOV_2D_bottom);
+        float left_sight_top_angle = normalize_angle(particlepoint[i].FOV_dir + HFOV_2D_top);
+        float left_sight_bottom_angle = normalize_angle(particlepoint[i].FOV_dir + HFOV_2D_bottom);
         
         float top_waist_length = sqrt(pow(top,2) + pow(top_width,2));
         float bottom_waist_length = sqrt(pow(bottom,2) + pow(bottom_width,2));
@@ -327,66 +708,26 @@ void ParticleFilter::LandMarkMode(Landmarkmode mode)
             break;
     }
 }
-// void ParticleFilter::FindLineInFOV()     //當有較多的粒子數時 會跑不太動
-// {
-//     Mat tmp_FOV_LINE = Soccer_Field.clone();
-//     Mat Mask = Mat::zeros(Soccer_Field.rows,Soccer_Field.cols, CV_8UC3); 
-//     for(int i = 0; i < particlepoint.size(); i++)
-//     {
-//         Mat x = Mat::zeros(Soccer_Field.rows,Soccer_Field.cols, CV_8UC3); 
-//         Mask = Mat::zeros(Soccer_Field.rows,Soccer_Field.cols, CV_8UC3); 
-//         FOV_tmp.push_back(Point(particlepoint[i].FOV_Bottom_Right.x,particlepoint[i].FOV_Bottom_Right.y));
-//         FOV_tmp.push_back(Point(particlepoint[i].FOV_Top_Right.x,particlepoint[i].FOV_Top_Right.y));
-//         FOV_tmp.push_back(Point(particlepoint[i].FOV_Top_Left.x,particlepoint[i].FOV_Top_Left.y));
-//         FOV_tmp.push_back(Point(particlepoint[i].FOV_Bottom_Left.x,particlepoint[i].FOV_Bottom_Left.y));
-//         cv::polylines(Mask, FOV_tmp, true, Scalar(255, 255, 255), -1);//第2個引數可以採用contour或者contours，均可
-//         tmp_FOV_LINE.copyTo(x,Mask);
-//         Canny(x, x, 100, 150, 3);
-//         vector<Vec4i> lines_tmp;
-//         HoughLinesP(x,lines_tmp,1,CV_PI/180,100,60,40); 
-//         for(size_t j = 0 ; j < lines_tmp.size(); j++)
-//         {
-//             LineINF lineinf;
-//             Vec4i X = lines_tmp[j];
-//             double theta = Slope(X);
-
-//             if(X[0] > X[2])
-//             {
-//                 lineinf.start_point = {X[2],X[3]};
-//                 lineinf.end_point = {X[0],X[1]};
-//             }else{
-//                 lineinf.start_point = {X[0],X[1]};
-//                 lineinf.end_point = {X[2],X[3]};
-//             }
-//             lineinf.center_point = {(X[2]+X[0])/2,(X[3]+X[1])/2};
-//             lineinf.Line_length = sqrt(pow((X[0]-X[2]),2)+pow((X[1]-X[3]),2));
-//             lineinf.Line_theta = theta;
-//             particlepoint[i].allLineinformation[j].Lineinformation.push_back(lineinf);
-//         }
-//         lines_tmp.clear();
-//     }
-// }
-
 
 void ParticleFilter::CalcFOVArea_averagepos(int focus, int top, int bottom, int top_width, int bottom_width, float horizontal_head_angle)
 {
     // ROS_INFO("CalcFOVArea_averagepos");
-    Robot_Position.FOV_dir = Angle_Adjustment(Robot_Position.angle + horizontal_head_angle);
+    Robot_Position.FOV_dir = normalize_angle(Robot_Position.angle + horizontal_head_angle);
 
     //coordinate Camera_Focus;
 
     float HFOV_2D_bottom = atan2(bottom_width,bottom) * 180 / PI;
-    HFOV_2D_bottom = Angle_Adjustment(HFOV_2D_bottom);
+    HFOV_2D_bottom = normalize_angle(HFOV_2D_bottom);
     float HFOV_2D_top = atan2(top_width,top) * 180 / PI;
-    HFOV_2D_top = Angle_Adjustment(HFOV_2D_top);
+    HFOV_2D_top = normalize_angle(HFOV_2D_top);
 
     //Camera_Focus.x = Robot_Position.postion.x + focus * cos(FOV_dir * DEG2RAD);
     //Camera_Focus.y = Robot_Position.postion.y + focus * sin(FOV_dir * DEG2RAD);
 
-    float right_sight_top_angle = Angle_Adjustment(Robot_Position.FOV_dir - HFOV_2D_top);
-    float right_sight_bottom_angle = Angle_Adjustment(Robot_Position.FOV_dir - HFOV_2D_bottom);
-    float left_sight_top_angle = Angle_Adjustment(Robot_Position.FOV_dir + HFOV_2D_top);
-    float left_sight_bottom_angle = Angle_Adjustment(Robot_Position.FOV_dir + HFOV_2D_bottom);
+    float right_sight_top_angle = normalize_angle(Robot_Position.FOV_dir - HFOV_2D_top);
+    float right_sight_bottom_angle = normalize_angle(Robot_Position.FOV_dir - HFOV_2D_bottom);
+    float left_sight_top_angle = normalize_angle(Robot_Position.FOV_dir + HFOV_2D_top);
+    float left_sight_bottom_angle = normalize_angle(Robot_Position.FOV_dir + HFOV_2D_bottom);
         
     float top_waist_length = sqrt(pow(top,2) + pow(top_width,2));
     float bottom_waist_length = sqrt(pow(bottom,2) + pow(bottom_width,2));
@@ -465,7 +806,7 @@ void ParticleFilter::FindFeaturePoint()
         for (float angle = particlepoint[i].FOV_dir +  - 90.0; angle <= particlepoint[i].FOV_dir + 91.0; angle = angle + 5.0)
         {
             bool find_feature_flag = false;
-            int angle_be = (int)(Angle_Adjustment(angle));
+            int angle_be = (int)(normalize_angle(angle));
             scan_line scan_tmp;
             for (int r = InnerMsg; r <= OuterMsg; r++)
             {      
@@ -551,10 +892,10 @@ void ParticleFilter::KLD_Sampling()
 
     while(current_num < particlepoint_num && current_num < particlepoint_num_finish)
     {
-        pointdata current_point;
+        Pointdata current_point;
         current_point.pose.x = particlepoint[current_num].postion.x;
         current_point.pose.y = particlepoint[current_num].postion.y;
-        current_point.theta = int(particlepoint[current_num].angle);
+        current_point.angle = int(particlepoint[current_num].angle);
 
         if(non_empty_bin.size() != 0)
         {
@@ -631,172 +972,7 @@ void ParticleFilter::KLD_Sampling()
     ROS_INFO("KLD_Sampling end!!");
 }
 
-int ParticleFilter::TournamentResample(int excellent_particle_num)
-{
-    ROS_INFO("TournamentResample");
-    int tournament_particle_num[excellent_particle_num] = {0};
-    int best_particle_num = 0;
-    float best_weight_value = 0.0;
 
-    for(int i = 0; i < excellent_particle_num; ++i)
-    {
-        tournament_particle_num[i] = rand()%particlepoint_num;
-        for(int j = 0; j < i; j++)
-        {
-            if(tournament_particle_num[i] == tournament_particle_num[j])
-            {
-                tournament_particle_num[i] = rand()%particlepoint_num;
-                j = -1;
-            }
-        }
-        if(particlepoint[tournament_particle_num[i]].weight > best_weight_value)
-        {
-            best_weight_value = particlepoint[tournament_particle_num[i]].weight;
-            best_particle_num = tournament_particle_num[i];
-        }
-    }
-    return best_particle_num;
-}
-
-double ParticleFilter::gauss(double sigma, double mu)
-{
-    // ROS_INFO("gauss");
-    std::random_device rd;
-    std::mt19937 generator(rd());
-    std::normal_distribution<> dist;
-    std::normal_distribution<> norm {mu, sigma};
-    return norm(rd);
-}
-
-void ParticleFilter::Motion(int straight, int drift, int rotational, int moving, int dt)
-{
-    // ROS_INFO("Motion");    
-    int Forward = int(  straight +
-                        gauss(factors[0] * straight) +
-                        gauss(factors[1] * drift) +
-                        gauss(factors[2] * rotational) +
-                        gauss(factors[3] * wfactor) +
-                        gauss(factors[4]));
-    
-    int Side  = int(    drift +
-                        gauss(factors[5] * straight) +
-                        gauss(factors[6] * drift) +
-                        gauss(factors[7] * rotational) +
-                        gauss(factors[8] * wfactor) +
-                        gauss(factors[9]));
-
-    int Omega = int(    rotational +
-                        gauss(factors[10] * straight) +
-                        gauss(factors[11] * drift) +
-                        gauss(factors[12] * rotational) +
-                        gauss(factors[13] * wfactor) +
-                        gauss(factors[14])); 
-
-    Omega = Omega * DEG2RAD;
-    // ROS_INFO("Forward = %d ,Side = %d ,Omega = %d ",Forward,Side,Omega);
-    int Theta =  rotation * DEG2RAD;
-    int x = 0;
-    int y = 0;
-    int Direction = 0;
-    int Dir2 = 0;
-    
-    if(Omega == 0)
-    {
-        Direction = Theta;
-        x = (   posx +
-                Forward * cos(Theta) * dt +
-                Side * sin(Theta) * dt);
-        y = (   posy -
-                Forward * sin(Theta) * dt +
-                Side * cos(Theta) * dt);
-    }else{
-        Direction = Theta + Omega * dt;
-        Dir2 = -Theta + Omega * dt;
-        x = (posx +
-            Forward / Omega * (sin(Direction) - sin(Theta)) -
-            Side / Omega * (cos(-Theta) - cos(Dir2)));
-        y = (posy -
-            Forward / Omega * (cos(Theta) - cos(Direction)) -
-            Side / Omega * (sin(-Theta) - sin(Dir2)));
-    }
-
-    if( x < regions[0].x || x > regions[0].y ||
-        y < regions[1].x || y > regions[1].y )
-    {
-        x = 0;
-        y = 0;
-    }
-
-    posx = x;
-    posy = y;
-    int rotat = Direction * RAD2DEG;
-
-    if(rotat > 180)
-    {
-        rotation = rotat - 360;
-    }else if(rotat < -180)
-    {
-        rotation = rotat + 360;
-    }else{
-        rotation = rotat;
-    }
-    // ROS_INFO("posx = %d ,posy = %d ,rotation = %d ",posx,posy,rotation);
-}
-
-void ParticleFilter::GetUpBackUp()
-{
-    // ROS_INFO("GetUpBackUp");    
-    posx += int(gauss(7, 0));
-    posy += int(gauss(7, 0));
-    rotation += int(gauss(25, 0));
-}
-
-void ParticleFilter::GetUpFrontUp()
-{   
-    // ROS_INFO("GetUpFrontUp");    
-    posx += int(gauss(7,-30)*sin(rotation*DEG2RAD));
-    posy += int(gauss(7,-30)*cos(rotation*DEG2RAD));
-    rotation += int(gauss(25, 0));
-    GetUpBackUp();
-}
-
-void ParticleFilter::Movement(int straight, int drift, int rotational, int moving, int dt)
-{
-    // ROS_INFO("Movement");    
-    if(moving == 1)
-    {
-        Motion(straight, drift, rotational, 1, 0);
-        // ROS_INFO("1");
-    }else if(moving == 2)
-    {
-        GetUpBackUp();
-        // ROS_INFO("2");
-
-    }else{
-        GetUpFrontUp();
-        // ROS_INFO("3");
-    }
-}
-
-void ParticleFilter::StatePredict(vector<int> u)
-{
-    ROS_INFO("StatePredict");
-    vector<ParticlePoint> tmp;
-
-    //-------------add motion error coefficients---------------
-    for(int i = 0; i < particlepoint_num; ++i)
-    {
-        ParticlePoint current_particle;
-        Movement(u[0],u[1],u[2],u[3],u[4]);
-        current_particle.postion.x = posx;
-        current_particle.postion.y = posy;
-        current_particle.angle = rotation;
-        tmp.push_back(current_particle);
-    }
-    particlepoint.clear();
-    particlepoint = tmp;
-    ROS_INFO("particlepoint size = %d",particlepoint.size());
-}
 
 // void ParticleFilter::Update(scan_line *feature_point_observation_data)
 // {
@@ -817,206 +993,22 @@ void ParticleFilter::StatePredict(vector<int> u)
 //     }
 // }
 
-double ParticleFilter::ComputeAngLikelihoodDeg(double angle, double base, double std_deviation)
-{
-    ROS_INFO("ComputeAngLikelihoodDeg");       
-    float xa = cos(angle * DEG2RAD);
-    float ya = sin(angle * DEG2RAD);
-    float xb = cos(base * DEG2RAD);
-    float yb = sin(base * DEG2RAD);
+// double ParticleFilter::ComputeAngLikelihoodDeg(double angle, double base, double std_deviation)
+// {
+//     ROS_INFO("ComputeAngLikelihoodDeg");       
+//     float xa = cos(angle * DEG2RAD);
+//     float ya = sin(angle * DEG2RAD);
+//     float xb = cos(base * DEG2RAD);
+//     float yb = sin(base * DEG2RAD);
 
-    float d = hypot(xa - xb, ya - yb);
+//     float d = hypot(xa - xb, ya - yb);
 
-    float sa = cos(std_deviation * DEG2RAD);
-    float sb = sin(std_deviation * DEG2RAD);
-    float s = hypot(sa - 1, sb);
+//     float sa = cos(std_deviation * DEG2RAD);
+//     float sb = sin(std_deviation * DEG2RAD);
+//     float s = hypot(sa - 1, sb);
 
-    return exp(-pow(d, 2) / (2 * pow(s, 2)));
-}
-
-
-
-void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data, LineINF *Line_observation_data)
-{
-    ROS_INFO("FindBestParticle");
-    int factorweight = 1;
-    int fwl = -1;
-    // A_MCL (長期移動平均)
-    float x_avg = 0.0;
-    float y_avg = 0.0;
-    for(int i = 0; i < particlepoint_num; i++)
-    {
-        particlepoint[i].fitness_value = 0;
-        particlepoint[i].weight = 0.0;
-        int real_feature_point_cnt = 0;
-        x_avg += particlepoint[i].postion.x;
-        y_avg += particlepoint[i].postion.y;
-        for(int j = 0; j < particlepoint[i].featurepoint_scan_line.size(); j++)//36
-        {
-            real_feature_point_cnt += (*(feature_point_observation_data + j)).feature_point.size();
-            if(particlepoint[i].featurepoint_scan_line[j].feature_point.size() == (*(feature_point_observation_data + j)).feature_point.size())
-            {
-                int scan_line_fitness = 0.0;
-                for(int k = 0; k < particlepoint[i].featurepoint_scan_line[j].feature_point.size(); k++)
-                {
-                    if((*(feature_point_observation_data + j)).feature_point[k].dis < 0)
-                    {
-                        if(particlepoint[i].featurepoint_scan_line[j].feature_point[k].dis < 0)
-                        {
-                            scan_line_fitness += MAP_MAX_LENGTH;
-                        }
-                    }
-                    else
-                    {
-                        if(particlepoint[i].featurepoint_scan_line[j].feature_point[k].dis > 0)
-                        {
-                            int Dis_error = abs((*(feature_point_observation_data + j)).feature_point[k].dis - particlepoint[i].featurepoint_scan_line[j].feature_point[k].dis);
-                            Dis_error = abs(MAP_MAX_LENGTH - Dis_error);
-                            scan_line_fitness = scan_line_fitness + Dis_error;
-                        }
-                    }
-                }
-                particlepoint[i].fitness_value += (scan_line_fitness / particlepoint[i].featurepoint_scan_line[j].feature_point.size());
-            }
-            else if(particlepoint[i].featurepoint_scan_line[j].feature_point.size() > (*(feature_point_observation_data + j)).feature_point.size())
-            {
-                int scan_line_fitness = 0;
-                for(int k = 0; k < (*(feature_point_observation_data + j)).feature_point.size(); k++)
-                {
-                    if((*(feature_point_observation_data + j)).feature_point[k].dis < 0)
-                    {
-                        if(particlepoint[i].featurepoint_scan_line[j].feature_point[k].dis < 0)
-                        {
-                            scan_line_fitness += MAP_MAX_LENGTH;
-                        }
-                    }
-                    else
-                    {
-                        if(particlepoint[i].featurepoint_scan_line[j].feature_point[k].dis > 0)
-                        {
-                            int Dis_error = abs((*(feature_point_observation_data + j)).feature_point[k].dis - particlepoint[i].featurepoint_scan_line[j].feature_point[k].dis);
-                            Dis_error = abs(MAP_MAX_LENGTH - Dis_error);
-                            scan_line_fitness = scan_line_fitness + Dis_error;
-                        }
-                    }
-                }
-                particlepoint[i].fitness_value += (scan_line_fitness / particlepoint[i].featurepoint_scan_line[j].feature_point.size());
-            }
-            else
-            {
-                int scan_line_fitness = 0;
-                for(int k = 0; k < particlepoint[i].featurepoint_scan_line[j].feature_point.size(); k++)
-                {
-                    if((*(feature_point_observation_data + j)).feature_point[k].dis < 0)
-                    {
-                        if(particlepoint[i].featurepoint_scan_line[j].feature_point[k].dis < 0)
-                        {
-                            scan_line_fitness += MAP_MAX_LENGTH;
-                        }
-                    }
-                    else
-                    {
-                        if(particlepoint[i].featurepoint_scan_line[j].feature_point[k].dis > 0)
-                        {
-                            int Dis_error = abs((*(feature_point_observation_data + j)).feature_point[k].dis - particlepoint[i].featurepoint_scan_line[j].feature_point[k].dis);
-                            Dis_error = abs(MAP_MAX_LENGTH - Dis_error);
-                            scan_line_fitness = scan_line_fitness + Dis_error;
-                        }
-                    }
-                }
-                particlepoint[i].fitness_value += (scan_line_fitness / (*(feature_point_observation_data + j)).feature_point.size());
-            }
-        }
-
-        //待修改
-        for(int m = 0; m < particlepoint[i].landmark_list.size(); m++)//計算虛擬地圖中的地標相似性
-        {
-            pointdata robot = {Point(0,0),0};
-            robot.pose = particlepoint[i].pos.pose;
-            robot.theta = particlepoint[i].pos.theta;
-            if((m -1) >= 0)
-            {
-                if (!particlepoint[i].landmark_list[m-1].observed) 
-                {
-                    // ROS_INFO("not seen before");
-                    double gx = robot.pose.x + particlepoint[i].landmark_list[m].distance * cos(robot.theta + particlepoint[i].landmark_list[m].Line_theta);
-                    double gy = robot.pose.y + particlepoint[i].landmark_list[m].distance * sin(robot.theta + particlepoint[i].landmark_list[m].Line_theta);
-
-                    particlepoint[i].landmark_list[m-1].mu << gx, gy;
-                    //get the Jacobian with respect to the landmark position
-                    Eigen::MatrixXd H;
-                    Eigen::Vector2d h;
-                    Measurement_model(particlepoint[i], m, h, H);
-                    //initialize the ekf for this landmark
-                    MatrixXd Hi = H.inverse();
-                    particlepoint[i].landmark_list[m-1].sigma = Hi * Q_ * Hi.transpose();
-                    particlepoint[i].landmark_list[m-1].observed = true;
-
-                }else{
-                    ROS_INFO("seen before");
-                    Eigen::Vector2d expect_Z;
-                    MatrixXd H;
-                    Measurement_model(particlepoint[i],m, expect_Z, H) ;
-                    //compute the measurement covariance
-                    MatrixXd sig = particlepoint[i].landmark_list[m - 1].sigma;
-                    MatrixXd Q   = H * sig * H.transpose() + Q_;
-                    //calculate the Kalman gain K
-                    MatrixXd K = sig * H.transpose() * Q.inverse();
-                    //calculat the error between the z and expected Z
-                    Eigen::Vector2d z_actual;
-                    z_actual << (*(Line_observation_data + m -1)).distance, (*(Line_observation_data + m -1)).Line_theta;
-                    Eigen::Vector2d z_diff = z_actual - expect_Z;
-                    z_diff(1) = Angle_Adjustment(z_diff(1));
-                    cout<<" sig "<< sig <<endl;
-                    cout<<" Q "<< Q <<endl;
-                    cout<<" K "<< K <<endl;            
-                    particlepoint[i].landmark_list[m-1].mu    = particlepoint[i].landmark_list[m-1].mu + K * z_diff;
-                    particlepoint[i].landmark_list[m-1].sigma = particlepoint[i].landmark_list[m-1].sigma - K * H * sig;
-                    // ROS_INFO("particlepoint[%d].landmark_list[m-1].mu = %f",i,particlepoint[i].landmark_list[m-1].mu);    
-                    // ROS_INFO("particlepoint[%d].landmark_list[m-1].sigma = %f",i,particlepoint[i].landmark_list[m-1].sigma); 
-                    //calculate the weight
-                    double p = exp(-0.5*z_diff.transpose()*Q.inverse()*z_diff)/sqrt(2 * PI * Q.determinant());
-                    // ROS_INFO("p = %f, exp(-0.5*z_diff.transpose()*Q.inverse()*z_diff) = %f,sqrt(2 * PI * Q.determinant()) = %f",p,exp(-0.5*z_diff.transpose()*Q.inverse()*z_diff),sqrt(2 * PI * Q.determinant()));    
-                    particlepoint[i].likehood *= p;
-                    // ROS_INFO("particlepoint[%d].likehood = %f",i,particlepoint[i].likehood);    
-                }
-            }    
-        } 
-        // }
-        // ROS_INFO("particlepoint[%d].likehood = %f",i,particlepoint[i].likehood);                                                                               
-        particlepoint[i].weight = (float)particlepoint[i].fitness_value / ((float)(real_feature_point_cnt * MAP_MAX_LENGTH))+(float)particlepoint[i].likehood;
-        // ROS_INFO("particlepoint[%d].weight = %f",i,particlepoint[i].weight);
-        // int totalweight = 0;
-        // totalweight += particlepoint[i].weight;
-        // // weight_avg = weight_avg + particlepoint[i].weight;
-    }
-
-    x_avg = x_avg / (float)particlepoint_num;
-    y_avg = y_avg / (float)particlepoint_num;
-    // weight_avg = weight_avg / (float)particlepoint_num;
-    // ROS_INFO("weight_avg:%f", weight_avg);
-    // weight_slow = weight_slow + alpha_slow * (weight_avg - weight_slow);
-    // weight_fast = weight_fast + alpha_fast * (weight_avg - weight_fast);
-    // ROS_INFO("weight_slow:%f", weight_slow);
-    // ROS_INFO("weight_fast:%f", weight_fast);
-    particlepoint_compare = particlepoint;
-    sort(particlepoint_compare.begin(), particlepoint_compare.end(), greater<ParticlePoint>());
-    FindRobotPosition(x_avg, y_avg);
-    ROS_INFO("weight:%f", particlepoint[0].weight);
-    ROS_INFO("weight_low:%f", particlepoint[particlepoint.size() - 1].weight);
-    ROS_INFO("x:%d", Robot_Position.postion.x);
-    ROS_INFO("y:%d", Robot_Position.postion.y);
-    //-------------判斷適應值太高的狀況就不更新---------
-    if(particlepoint_compare[0].weight < 0.28)
-    {
-        find_best_flag = false;
-    }
-    else
-    {
-        find_best_flag = true;
-    }
-    //-------------判斷適應值太高的狀況就不更新---------
-}
+//     return exp(-pow(d, 2) / (2 * pow(s, 2)));
+// }
 
 void ParticleFilter::FindRobotPosition(float x_avg, float y_avg)
 {
@@ -1120,14 +1112,14 @@ void ParticleFilter::FindRobotPosition(float x_avg, float y_avg)
     //         find_best_flag = true;
     //         current_particle.postion.x = x_random_distribution(x_generator);
     //         current_particle.postion.y = y_random_distribution(y_generator);
-    //         current_particle.angle = Angle_Adjustment(Robot_Position.angle + rand()%rand_angle - rand_angle_init);
+    //         current_particle.angle = normalize_angle(Robot_Position.angle + rand()%rand_angle - rand_angle_init);
     //         tmp.push_back(current_particle);
     //     }
     //     else
     //     {
     //         int best_particle_num = TournamentResample(excellent_particle_num);
 
-    //         current_particle.angle = Angle_Adjustment(Robot_Position.angle + rand()%rand_angle - rand_angle_init);
+    //         current_particle.angle = normalize_angle(Robot_Position.angle + rand()%rand_angle - rand_angle_init);
     //         if(Step_flag)
     //         {
     //             float move_x = 0.0;
@@ -1135,11 +1127,11 @@ void ParticleFilter::FindRobotPosition(float x_avg, float y_avg)
     //             float y_dir_angle = 0.0;
     //             if(continuous_y > 0)
     //             {
-    //                 float y_dir_angle = Angle_Adjustment(current_particle.angle + 90.0);
+    //                 float y_dir_angle = normalize_angle(current_particle.angle + 90.0);
     //             }
     //             else
     //             {
-    //                 float y_dir_angle = Angle_Adjustment(current_particle.angle - 90.0);
+    //                 float y_dir_angle = normalize_angle(current_particle.angle - 90.0);
     //             }
     //             move_x = cos(current_particle.angle * DEG2RAD) * continuous_x / 1000 + cos(y_dir_angle * DEG2RAD) * continuous_y / 1000;
     //             move_y = -(sin(current_particle.angle * DEG2RAD) * continuous_x / 1000 + sin(y_dir_angle * DEG2RAD) * continuous_y / 1000);
@@ -1208,14 +1200,14 @@ void ParticleFilter::NoLookField(vector<int> u)
         // float y_dir_angle = 0.0;
         // for(int i = 0; i < particlepoint_num; ++i)
         // { 
-        //     particlepoint[i].angle = Angle_Adjustment(Robot_Position.angle);
+        //     particlepoint[i].angle = normalize_angle(Robot_Position.angle);
         //     if(continuous_y > 0)
         //     {
-        //         float y_dir_angle = Angle_Adjustment(particlepoint[i].angle + 90.0);
+        //         float y_dir_angle = normalize_angle(particlepoint[i].angle + 90.0);
         //     }
         //     else
         //     {
-        //         float y_dir_angle = Angle_Adjustment(particlepoint[i].angle - 90.0);
+        //         float y_dir_angle = normalize_angle(particlepoint[i].angle - 90.0);
         //     }
         //     move_x = cos(particlepoint[i].angle * DEG2RAD) * continuous_x / 1000 + cos(y_dir_angle * DEG2RAD) * continuous_y / 1000;
         //     move_y = -(sin(particlepoint[i].angle * DEG2RAD) * continuous_x / 1000 + sin(y_dir_angle * DEG2RAD) * continuous_y / 1000);
@@ -1235,14 +1227,14 @@ void ParticleFilter::NoLookField(vector<int> u)
         //         //step_count = 0;
         //     }
         // }
-        // Robot_Position.angle = Angle_Adjustment(Robot_Position.angle);
+        // Robot_Position.angle = normalize_angle(Robot_Position.angle);
         // if(continuous_y > 0)
         // {
-        //     float y_dir_angle = Angle_Adjustment(Robot_Position.angle + 90.0);
+        //     float y_dir_angle = normalize_angle(Robot_Position.angle + 90.0);
         // }
         // else
         // {
-        //     float y_dir_angle = Angle_Adjustment(Robot_Position.angle - 90.0);
+        //     float y_dir_angle = normalize_angle(Robot_Position.angle - 90.0);
         // }
         // move_x = cos(Robot_Position.angle * DEG2RAD) * continuous_x / 1000 + cos(y_dir_angle * DEG2RAD) * continuous_y / 1000;
         // move_y = -(sin(Robot_Position.angle * DEG2RAD) * continuous_x / 1000 + sin(y_dir_angle * DEG2RAD) * continuous_y / 1000);

@@ -9,14 +9,14 @@ LocalizationBase::~LocalizationBase()
     
 }
 
-float LocalizationBase::Angle_Adjustment(float angle)
+double LocalizationBase::gauss(double sigma, double mu)
 {
-    if (angle < 0.0)
-        return angle + 360.0;
-    else if (angle >= 360.0)
-        return angle - 360.0;
-    else
-        return angle;
+    // ROS_INFO("gauss");
+    std::random_device rd;
+    std::mt19937 generator(rd());
+    std::normal_distribution<> dist;
+    std::normal_distribution<> norm {mu, sigma};
+    return norm(rd);
 }
 
 void LocalizationBase::AngleLUT()
@@ -33,12 +33,12 @@ void LocalizationBase::AngleLUT()
 float LocalizationBase::normalize_angle(float phi) 
 {
   //Normalize phi to be between -pi and pi
-    while(phi > PI) {
-        phi = phi - 2 * PI;
+    while(phi > 180.0) {
+        phi = phi - 2 * 180.0;
     }
 
-    while(phi < -PI) {
-        phi = phi + 2 * PI;
+    while(phi < -180.0) {
+        phi = phi + 2 * 180.0;
     }
     return phi;
 }

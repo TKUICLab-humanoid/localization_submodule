@@ -21,7 +21,7 @@ class ParticleFilter : public FastSlam
         int min_particlepoint_num;
         float kld_err;                      //varepsilon in papper
         float kld_z;                        //Z(1-sigma) in papper
-        vector<pointdata> non_empty_bin;    //save the non-empty bins
+        vector<Pointdata> non_empty_bin;    //save the non-empty bins
         //////////////////KLD//////////////////
         
         //////////////////WMCL/////////////////
@@ -68,7 +68,6 @@ class ParticleFilter : public FastSlam
         int posx;
         int posy;
         vector<Point> regions;
-        double gauss(double sigma, double mu = 0);
         void Motion(int straight = 0, int drift = 0, int rotational = 0, int moving = 1, int dt = 0);
         void Movement(int straight = 0, int drift = 0, int rotational = 0, int moving = 1, int dt = 0);
         void GetUpBackUp();
@@ -80,7 +79,7 @@ class ParticleFilter : public FastSlam
         ParticleFilter();
         ~ParticleFilter();
 
-        void ParticlePointinit(unsigned int landmark_size);
+        void ParticlePointInitialize(unsigned int landmark_size);
         void CalcFOVArea(int focus, int top, int bottom, int top_width, int bottom_width, float horizontal_head_angle);
         bool CheckPointArea(ParticlePoint *tmp, int x, int y);
         void FindFeaturePoint();
@@ -88,8 +87,9 @@ class ParticleFilter : public FastSlam
         void FindRobotPosition(float x_avg, float y_avg);
         int TournamentResample(int excellent_particle_num);
         void StatePredict(vector<int> u);
-        double ComputeAngLikelihoodDeg(double angle, double base, double std_deviation);
+        // double ComputeAngLikelihoodDeg(double angle, double base, double std_deviation);
         void LandMarkMode(Landmarkmode mode);
+        void GetBestPoseAndLandmark(VectorXd& mu_ );
 
         //void CalcNewParticle();
 

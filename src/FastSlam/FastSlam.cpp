@@ -10,28 +10,6 @@ FastSlam::~FastSlam()
 
 }
 
-void FastSlam::Initialize(ParticlePoint& p,unsigned int landmark_size, int _N = 50) 
-{
-    // ROS_INFO("Initialize");
-//   noises << 0.005, 0.01, 0.005;
-  Q_ << 0.1, 0, 0, 0.1;
-  N = _N;
-
-    for (int i = 0; i < N; i++) 
-    {
-        p.likehood = 1.0 / N;
-        p.pos.pose = Point(0,0);
-        p.pos.theta = 0;
-        p.landmark_list.resize(landmark_size);
-        for (int j = 0; j < landmark_size; j++) 
-        {
-            p.landmark_list[j].observed = false;
-            p.landmark_list[j].mu << 0,0;
-            p.landmark_list[j].sigma << 0, 0, 0, 0;
-        }
-    }
-}
-
 void FastSlam::Measurement_model(const ParticlePoint& p, int LandMarkID, Eigen::Vector2d& h, Eigen::MatrixXd& H) 
 {
     Point landmark_point = p.landmark_list[LandMarkID].Nearest_point;//機器人與地標最近的點

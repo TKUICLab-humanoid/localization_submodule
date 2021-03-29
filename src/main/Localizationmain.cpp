@@ -27,7 +27,7 @@ Localization_main::Localization_main(ros::NodeHandle &nh)
     DIO_Ack_Subscriber = nh.subscribe("/package/FPGAack", 10, &Localization_main::DIOackFunction,this);
 
     GetVelocity_Subscriber = nh.subscribe("/GetVelocityValue_Topic", 10, &Localization_main::GetVelocityValue,this);
-    
+    GetIMUData_Subscriber = nh.subscribe("/camera/gyro/IMUdata", 10, &Localization_main::GetIMUData,this);
     RobotPos_Publisher = nh.advertise<tku_msgs::RobotPos>("/localization/robotpos", 1000);
     DrawRobotPos_Publisher = it.advertise("/localization/DrawRobotPos", 1);
     ParticlePoint_Publisher = it.advertise("/localization/ParticlePoint", 1);
@@ -38,20 +38,26 @@ Localization_main::Localization_main(ros::NodeHandle &nh)
     change_pos_flag = false;
     loop_cnt = 0;
     Velocityvalue ={0,0,0,0,0};
+    IMUData = {0.0,0.0,0.0};
     loop_cnt_vector.clear();
 }
 Localization_main::~Localization_main()
 {
     delete spinner_timer;
 }
-
+void Localization_main::GetIMUData(const realsense2_camera::IMUdata &msg)
+{
+    IMUData[0] = msg.roll;
+    IMUData[1] = msg.pitch;
+    IMUData[2] = msg.yaw;
+}
 void Localization_main::GetVelocityValue(const tku_msgs::GetVelocity &msg)
 {
     Velocityvalue[0] = msg.x;
     Velocityvalue[1] = msg.y;
     Velocityvalue[2] = msg.thta;
-    Velocityvalue[3] = 1;
-    Velocityvalue[4] = 0;
+    Velocityvalue[3] = msg.moving;
+    Velocityvalue[4] = msg.dt;
 }
 
 void Localization_main::GetImageLengthDataFunction(const tku_msgs::ImageLengthData &msg)
@@ -89,6 +95,7 @@ void Localization_main::GetObservationDataFunction(const tku_msgs::ObservationDa
         lineinf.Nearest_point = Point((int)msg.landmark[i].Nearest_point.x,(int)msg.landmark[i].Nearest_point.y);
         Line_observation_data.push_back(lineinf);
     }
+    Line_observation_data_Size = Line_observation_data.size();
     
     for(int i = 0; i < msg.scan_line.size(); i++)
     {
@@ -117,7 +124,7 @@ void Localization_main::GetIMUDataFunction(const tku_msgs::SensorPackage &msg)
         {
             if(!first_get_imu)
             {
-                Robot_Position.angle = Angle_Adjustment(msg.IMUData[2]);
+                Robot_Position.angle = normalize_angle(msg.IMUData[2]);
                 angle_pre[0] = Robot_Position.angle;
                 angle_pre[1] = angle_pre[0] / 90.0;
                 if(angle_pre[1] == 4)
@@ -129,7 +136,7 @@ void Localization_main::GetIMUDataFunction(const tku_msgs::SensorPackage &msg)
             else
             {
                 float present_angle[2] = {0.0};
-                present_angle[0] = Angle_Adjustment(msg.IMUData[2]);
+                present_angle[0] = normalize_angle(msg.IMUData[2]);
                 present_angle[1] = present_angle[0] / 90.0;
                 if(present_angle[1] == 4)
                 {
@@ -281,7 +288,7 @@ int main(int argc, char** argv)
     ros::NodeHandle nh;
 	Localization_main *localization_main;
     localization_main = nullptr;
-
+    //set the robot position
     robot_pos_x_init = 750; 
     robot_pos_y_init = 213;
     robot_pos_dir_init = 0.0;
@@ -350,8 +357,13 @@ void Localization_main::strategy_init()
         Robot_Position.postion.y = robot_pos_y_init;
         Robot_Position.angle = robot_pos_dir_init;
 
+    }
+    if(Line_observation_data.size() == 0)
+    {
+        Line_observation_data_flag = false;
+        ROS_INFO("No Line observation Data");
     }   
-    ParticlePointinit(Line_observation_data.size());
+    ParticlePointInitialize(field_list.size());
     Soccer_Field = DrawField();
 
     observation_data.imagestate = false;

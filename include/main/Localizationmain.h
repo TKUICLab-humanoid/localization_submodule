@@ -6,7 +6,7 @@
 #include <std_msgs/Bool.h>
 #include <std_msgs/Float32.h>
 #include <image_transport/image_transport.h>
-
+#include "realsense2_camera/IMUdata.h"
 #include "tku_msgs/ImageLengthData.h"
 #include "tku_msgs/ObservationData.h"
 #include "tku_msgs/SensorPackage.h"
@@ -62,6 +62,7 @@ class Localization_main : public Drawing
         void GetVelocityValue(const tku_msgs::GetVelocity &msg);
 
 		void DIOackFunction(const std_msgs::Int16 &msg);
+        void GetIMUData(const realsense2_camera::IMUdata &msg);
 
         void CalcStepFunction(const ros::TimerEvent& event);
         void CalcLoopRateFunction(const ros::TimerEvent& event);
@@ -96,8 +97,8 @@ class Localization_main : public Drawing
         ros::Subscriber SetRobotPos_Subscriber;
         ros::Subscriber Start_Subscriber;
         ros::Subscriber GetVelocity_Subscriber;
+        ros::Subscriber GetIMUData_Subscriber;
 		ros::Subscriber DIO_Ack_Subscriber;
-
         ros::Publisher  IMUDataRequest_Publisher; 
         ros::Publisher  RobotPos_Publisher;
         
@@ -122,7 +123,7 @@ class Localization_main : public Drawing
         vector<int> Velocityvalue;
         vector<scan_line> feature_point_observation_data;
         vector<LineINF> Line_observation_data;
-
+        vector<float> IMUData;
         Mat FOV_Field;
 };
 

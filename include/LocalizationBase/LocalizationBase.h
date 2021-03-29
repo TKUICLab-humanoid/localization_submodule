@@ -51,10 +51,10 @@ struct FieldLine_data
 //     int Y;
 // };
 
-struct pointdata
+struct Pointdata
 {
     Point pose;
-    int theta;
+    double angle;
 };
 
 struct featuredata
@@ -126,7 +126,7 @@ struct ParticlePoint
     // vector<all_linedata> allLineinformation;
     vector<LineINF> landmark_list;
     
-    pointdata pos;
+    Pointdata pos;
 
     bool operator >(const ParticlePoint& rhs) const   //vector 使用struct型態 針對其中成員排序使用
 	{
@@ -145,7 +145,6 @@ class LocalizationBase
         LocalizationBase();
         ~LocalizationBase();
         double Slope(Vec4i line);
-        float Angle_Adjustment(float angle);
         void AngleLUT();
         int Frame_Area(int coordinate, int range);
         int Cross(Point A, Point B, Point P);  //點P與線段AB位置關係
@@ -156,5 +155,8 @@ class LocalizationBase
         Point MinIntersectPoint(Vec4i line, Point A, double mindistance);
         float normalize_angle(float phi) ;
         LineINF LineInformation(Point A, Point B, Point Bottom_left, Point Bottom_right);
+        bool Line_observation_data_flag = true;
+        int Line_observation_data_Size ;
+        double gauss(double sigma, double mu = 0);
 
 };
