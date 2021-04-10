@@ -27,7 +27,7 @@ Localization_main::Localization_main(ros::NodeHandle &nh)
     DIO_Ack_Subscriber = nh.subscribe("/package/FPGAack", 10, &Localization_main::DIOackFunction,this);
 
     GetVelocity_Subscriber = nh.subscribe("/GetVelocityValue_Topic", 10, &Localization_main::GetVelocityValue,this);
-    GetIMUData_Subscriber = nh.subscribe("/camera/gyro/IMUdata", 10, &Localization_main::GetIMUData,this);
+    GetIMUData_Subscriber = nh.subscribe("/imu/rpy/filtered", 10, &Localization_main::GetIMUData,this);
     RobotPos_Publisher = nh.advertise<tku_msgs::RobotPos>("/localization/robotpos", 1000);
     DrawRobotPos_Publisher = it.advertise("/localization/DrawRobotPos", 1);
     ParticlePoint_Publisher = it.advertise("/localization/ParticlePoint", 1);
@@ -45,11 +45,12 @@ Localization_main::~Localization_main()
 {
     delete spinner_timer;
 }
-void Localization_main::GetIMUData(const realsense2_camera::IMUdata &msg)
+void Localization_main::GetIMUData(const geometry_msgs::Vector3Stamped &msg)
 {
-    IMUData[0] = msg.roll;
-    IMUData[1] = msg.pitch;
-    IMUData[2] = msg.yaw;
+    IMUData[0] = msg.vector.x;
+    IMUData[1] = msg.vector.y;
+    IMUData[2] = msg.vector.z;
+    // ROS_INFO("r = %f, p = %f, y = %f",IMUData[0],IMUData[1],IMUData[2]);
 }
 void Localization_main::GetVelocityValue(const tku_msgs::GetVelocity &msg)
 {
