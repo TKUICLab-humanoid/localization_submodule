@@ -357,7 +357,6 @@ void Localization_main::strategy_main()
     localization_pos.y = Robot_Position.postion.Y;
     localization_pos.dir = Robot_Position.angle;
     localization_pos.weight = Robot_Position.weight;
-    localization_pos.robotFlag = robotFlag;
     LocalizationPos_Publisher.publish(localization_pos);
 
     //tool->Delay(4000);
