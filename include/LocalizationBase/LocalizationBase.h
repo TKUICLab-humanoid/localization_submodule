@@ -45,11 +45,23 @@ struct FieldLine_data
     Point end_point;
 };
 
-// struct coordinate
-// {
-//     int X;
-//     int Y;
-// };
+struct movement_data
+{
+    float  straight;
+    float  drift;
+    float  rotational;
+    float  moving;
+    float  dt;
+
+};
+
+struct IMU_data
+{
+    float  roll;
+    float  pitch;
+    float  yaw;
+
+};
 
 struct Pointdata
 {
@@ -95,7 +107,6 @@ struct LineINF
     Point Nearest_point;
     Eigen::Vector2d mu;
     Eigen::Matrix2d sigma;
-    bool observed;
 };
 
 struct all_linedata
@@ -110,28 +121,43 @@ static bool tocompare(Vec4i &s1, Vec4i &s2){
 
 struct ParticlePoint
 {
-    Point FOV_corrdinate[4]; // 0:Top_Left 1:Top_right 2:Bottom_Right 3:Bottom_Left
-    Point postion;
+    // FOV
+    // 0:Top_Left 1:Top_right 2:Bottom_Right 3:Bottom_Left
+    Point FOV_corrdinate[4]; 
+    float FOV_dir;
     Point FOV_Bottom_Right;
     Point FOV_Bottom_Left;
     Point FOV_Top_Right;
     Point FOV_Top_Left;
-    float FOV_dir;
-    int fitness_value;
+    
+    // position
+    Pointdata pos;
+    // Point postion;
+
+    // weight
     double weight;
+    int fitness_value;
     double likehood;
-    int particle_num;
-    double angle;
+
+    // factors
+    vector<int> factors[15];
+
+    // wfactors
+    double wfactors;
+
+    // observation information
     vector<scan_line> featurepoint_scan_line;
-    // vector<all_linedata> allLineinformation;
     vector<LineINF> landmark_list;
     
-    Pointdata pos;
-
     bool operator >(const ParticlePoint& rhs) const   //vector 使用struct型態 針對其中成員排序使用
 	{
 		return weight > rhs.weight;
 	}
+
+    // not sure  
+    int particle_num;
+    // double angle;
+    
 };
 
 class LocalizationBase

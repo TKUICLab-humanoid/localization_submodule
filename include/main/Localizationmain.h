@@ -121,10 +121,10 @@ class Localization_main : public Drawing
 
         bool first_loop_flag = true;
         bool first_get_imu;
-        vector<int> Velocityvalue;
+        movement_data Velocity_value;
         vector<scan_line> feature_point_observation_data;
         vector<LineINF> Line_observation_data;
-        vector<float> IMUData;
+        IMU_data imu_data;
         Mat FOV_Field;
 };
 

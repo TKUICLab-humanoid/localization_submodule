@@ -13,12 +13,12 @@ FastSlam::~FastSlam()
 void FastSlam::Measurement_model(const ParticlePoint& p, int LandMarkID, Eigen::Vector2d& h, Eigen::MatrixXd& H) 
 {
     Point landmark_point = p.landmark_list[LandMarkID].Nearest_point;//機器人與地標最近的點
-    Point particle_point = Point(p.postion.x,p.postion.y);//粒子點位置
+    Point particle_point = Point(p.pos.pose.x,p.pos.pose.y);//粒子點位置
     //use the current state of particle to predict measuremen
     float delta_x = abs(landmark_point.x-particle_point.x);
     float delta_y = abs(landmark_point.y-particle_point.y);
     double expect_distance   = sqrt(delta_x * delta_x + delta_y * delta_y);
-    double expect_angle = normalize_angle(atan2(delta_y, delta_x) - p.angle);
+    double expect_angle = normalize_angle(atan2(delta_y, delta_x) - p.pos.angle);
     // ROS_INFO("delta_x = %f",delta_x);
     // ROS_INFO("delta_y = %f",delta_y);
     // ROS_INFO("expect_distance = %f",expect_distance);

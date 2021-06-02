@@ -37,8 +37,7 @@ Localization_main::Localization_main(ros::NodeHandle &nh)
     is_start = false;
     change_pos_flag = false;
     loop_cnt = 0;
-    Velocityvalue ={0,0,0,0,0};
-    IMUData = {0.0,0.0,0.0};
+
     loop_cnt_vector.clear();
 }
 Localization_main::~Localization_main()
@@ -47,18 +46,18 @@ Localization_main::~Localization_main()
 }
 void Localization_main::GetIMUData(const geometry_msgs::Vector3Stamped &msg)
 {
-    IMUData[0] = msg.vector.x;
-    IMUData[1] = msg.vector.y;
-    IMUData[2] = msg.vector.z;
-    // ROS_INFO("r = %f, p = %f, y = %f",IMUData[0],IMUData[1],IMUData[2]);
+    imu_data.roll = msg.vector.x;
+    imu_data.pitch = msg.vector.y;
+    imu_data.yaw = msg.vector.z;
+    // ROS_INFO("r = %f, p = %f, y = %f",imu_data.roll,imu_data.pitch,imu_data.yaw);
 }
 void Localization_main::GetVelocityValue(const tku_msgs::GetVelocity &msg)
 {
-    Velocityvalue[0] = msg.x;
-    Velocityvalue[1] = msg.y;
-    Velocityvalue[2] = msg.thta;
-    Velocityvalue[3] = msg.moving;
-    Velocityvalue[4] = msg.dt;
+    Velocity_value.straight = (float)msg.x;
+    Velocity_value.drift = (float)msg.y;
+    Velocity_value.rotational = (float)msg.thta;
+    Velocity_value.moving = (float)msg.moving;
+    Velocity_value.dt = (float)msg.dt;
 }
 
 void Localization_main::GetImageLengthDataFunction(const tku_msgs::ImageLengthData &msg)
@@ -119,14 +118,14 @@ void Localization_main::GetIMUDataFunction(const tku_msgs::SensorPackage &msg)
     {
         if(msg.IMUData[0] == 0.0 && msg.IMUData[1] == 0.0 && msg.IMUData[2] == 0.0)
         {
-            Robot_Position.angle = angle_pre[0];
+            Robot_Position.pos.angle = angle_pre[0];
         }
         else
         {
             if(!first_get_imu)
             {
-                Robot_Position.angle = normalize_angle(msg.IMUData[2]);
-                angle_pre[0] = Robot_Position.angle;
+                Robot_Position.pos.angle = normalize_angle(msg.IMUData[2]);
+                angle_pre[0] = Robot_Position.pos.angle;
                 angle_pre[1] = angle_pre[0] / 90.0;
                 if(angle_pre[1] == 4)
                 {
@@ -147,8 +146,8 @@ void Localization_main::GetIMUDataFunction(const tku_msgs::SensorPackage &msg)
                 double angle_error = present_angle[0] - angle_pre[0];
                 if(abs(angle_error) < 90.0)
                 {
-                    Robot_Position.angle = present_angle[0];
-                    angle_pre[0] = Robot_Position.angle;
+                    Robot_Position.pos.angle = present_angle[0];
+                    angle_pre[0] = Robot_Position.pos.angle;
                     angle_pre[1] = angle_pre[0] / 90.0;
                     if(angle_pre[1] == 4)
                     {
@@ -172,8 +171,8 @@ void Localization_main::GetIMUDataFunction(const tku_msgs::SensorPackage &msg)
 
                         if(angle_error < 90.0)
                         {
-                            Robot_Position.angle = present_angle[0];
-                            angle_pre[0] = Robot_Position.angle;
+                            Robot_Position.pos.angle = present_angle[0];
+                            angle_pre[0] = Robot_Position.pos.angle;
                             angle_pre[1] = angle_pre[0] / 90.0;
                             if(angle_pre[1] == 4)
                             {
@@ -182,17 +181,17 @@ void Localization_main::GetIMUDataFunction(const tku_msgs::SensorPackage &msg)
                         }
                         else
                         {
-                            Robot_Position.angle = angle_pre[0];
+                            Robot_Position.pos.angle = angle_pre[0];
                         }
                     }
                     else
                     {
-                         Robot_Position.angle = angle_pre[0];
+                         Robot_Position.pos.angle = angle_pre[0];
                     }
                 }
             }
         }
-        //ROS_INFO("Angle_1 = %f",Robot_Position.angle);
+        //ROS_INFO("Angle_1 = %f",Robot_Position.pos.angle);
     }
 }
 
@@ -236,8 +235,8 @@ void Localization_main::GetSetRobotPosFunction(const tku_msgs::SetRobotPos &msg)
 {
     if(msg.number == 0)
     {
-        Robot_Position.postion = Point(msg.x,msg.y);
-        Robot_Position.angle = msg.dir;
+        Robot_Position.pos.pose = Point(msg.x,msg.y);
+        Robot_Position.pos.angle = msg.dir;
         robot_pos_x_init = msg.x;
         robot_pos_y_init = msg.y;
         robot_pos_dir_init = msg.dir;
@@ -352,11 +351,11 @@ int main(int argc, char** argv)
 
 void Localization_main::strategy_init()
 {
-    if(Robot_Position.postion.x < 0 && Robot_Position.postion.y < 0)
+    if(Robot_Position.pos.pose.x < 0 && Robot_Position.pos.pose.y < 0)
     {
-        Robot_Position.postion.x = robot_pos_x_init;
-        Robot_Position.postion.y = robot_pos_y_init;
-        Robot_Position.angle = robot_pos_dir_init;
+        Robot_Position.pos.pose.x = robot_pos_x_init;
+        Robot_Position.pos.pose.y = robot_pos_y_init;
+        Robot_Position.pos.angle = robot_pos_dir_init;
 
     }
     if(Line_observation_data.size() == 0)
@@ -375,22 +374,20 @@ void Localization_main::strategy_main()
     //imshow("Soccer_Field",Soccer_Field);
     if(!observation_data.imagestate)
     {
-        NoLookField(Velocityvalue);
+        NoLookField(Velocity_value);
         CalcFOVArea_averagepos(Camera_Focus, Image_Top_Length, Image_Bottom_Length, Image_Top_Width_Length, Image_Bottom_Width_Length, Horizontal_Head_Angle);
         //imshow("FOV_Field",DrawParticlePoint());
         // imshow("RobotPos",DrawRobotPos());
     }
     else
     {
-        step_count = 0;
         if(first_loop_flag)
         {
             first_loop_flag = false;
         }
         else
         {
-            KLD_Sampling();
-            StatePredict(Velocityvalue);
+            StatePredict(Velocity_value);
         }
         CalcFOVArea(Camera_Focus, Image_Top_Length, Image_Bottom_Length, Image_Top_Width_Length, Image_Bottom_Width_Length, Horizontal_Head_Angle);
         FindFeaturePoint();
@@ -401,6 +398,16 @@ void Localization_main::strategy_main()
             CalcFOVArea_averagepos(Camera_Focus, Image_Top_Length, Image_Bottom_Length, Image_Top_Width_Length, Image_Bottom_Width_Length, Horizontal_Head_Angle);
             LandMarkMode(Landmarkmode::ROBOT);
         }
+        if(first_loop_flag)
+        {
+            first_loop_flag = false;
+        }
+        else
+        {
+            KLD_Sampling();
+            resample();
+        }
+        
         //observation_data.clear();
         //imshow("FOV_Field",DrawParticlePoint());
         // namedWindow("ParticlePoint",WINDOW_NORMAL);
@@ -411,16 +418,16 @@ void Localization_main::strategy_main()
     //FOV_Field = DrawFOV();
     //particlepoint.clear();
 
-    robot_pos.x = Robot_Position.postion.x;
-    robot_pos.y = Robot_Position.postion.y;
-    robot_pos.dir = Robot_Position.angle;
+    robot_pos.x = Robot_Position.pos.pose.x;
+    robot_pos.y = Robot_Position.pos.pose.y;
+    robot_pos.dir = Robot_Position.pos.angle;
     RobotPos_Publisher.publish(robot_pos);
 
     //tool->Delay(4000);
     //ROS_INFO("distance = %d",Robot_Position.featurepoint[18].dis);
     //ROS_INFO("distance_y = %d",Robot_Position.featurepoint[18].y_dis);
-    //ROS_INFO("Robot_pos_x = %d",Robot_Position.postion.x);
-    //ROS_INFO("Robot_pos_y = %d",Robot_Position.postion.y);
+    //ROS_INFO("Robot_pos_x = %d",Robot_Position.pos.pose.x);
+    //ROS_INFO("Robot_pos_y = %d",Robot_Position.pos.pose.y);
 
     /*ROS_INFO("FOV_Top_Right = %d",Robot_Position.FOV_Top_Right.x);
     ROS_INFO("FOV_Top_Right = %d",Robot_Position.FOV_Top_Right.y);
@@ -439,4 +446,74 @@ void Localization_main::strategy_main()
     ParticlePoint_Publisher.publish(msg_ParticlePoint);
     waitKey(10);
 }
+
+// void Localization_main::strategy_main()
+// {
+//     //imshow("Soccer_Field",Soccer_Field);
+//     if(!observation_data.imagestate)
+//     {
+//         NoLookField(Velocityvalue);
+//         CalcFOVArea_averagepos(Camera_Focus, Image_Top_Length, Image_Bottom_Length, Image_Top_Width_Length, Image_Bottom_Width_Length, Horizontal_Head_Angle);
+//         //imshow("FOV_Field",DrawParticlePoint());
+//         // imshow("RobotPos",DrawRobotPos());
+//     }
+//     else
+//     {
+//         step_count = 0;
+//         if(first_loop_flag)
+//         {
+//             first_loop_flag = false;
+//         }
+//         else
+//         {
+//             KLD_Sampling();
+//             StatePredict(Velocityvalue);
+//         }
+//         CalcFOVArea(Camera_Focus, Image_Top_Length, Image_Bottom_Length, Image_Top_Width_Length, Image_Bottom_Width_Length, Horizontal_Head_Angle);
+//         FindFeaturePoint();
+//         LandMarkMode(Landmarkmode::PARTICLEPIONT);
+//         if(observation_data.scan_line.size() > 0)
+//         {
+//             FindBestParticle(&feature_point_observation_data[0], &Line_observation_data[0]);
+//             CalcFOVArea_averagepos(Camera_Focus, Image_Top_Length, Image_Bottom_Length, Image_Top_Width_Length, Image_Bottom_Width_Length, Horizontal_Head_Angle);
+//             LandMarkMode(Landmarkmode::ROBOT);
+//         }
+//         //observation_data.clear();
+//         //imshow("FOV_Field",DrawParticlePoint());
+//         // namedWindow("ParticlePoint",WINDOW_NORMAL);
+//         // imshow("ParticlePoint",DrawParticlePoint());
+//         // namedWindow("RobotPos",WINDOW_AUTOSIZE);
+//         // imshow("RobotPos",DrawRobotPos());
+//     }
+//     //FOV_Field = DrawFOV();
+//     //particlepoint.clear();
+
+//     robot_pos.x = Robot_Position.pos.pose.x;
+//     robot_pos.y = Robot_Position.pos.pose.y;
+//     robot_pos.dir = Robot_Position.pos.angle;
+//     RobotPos_Publisher.publish(robot_pos);
+
+//     //tool->Delay(4000);
+//     //ROS_INFO("distance = %d",Robot_Position.featurepoint[18].dis);
+//     //ROS_INFO("distance_y = %d",Robot_Position.featurepoint[18].y_dis);
+//     //ROS_INFO("Robot_pos_x = %d",Robot_Position.pos.pose.x);
+//     //ROS_INFO("Robot_pos_y = %d",Robot_Position.pos.pose.y);
+
+//     /*ROS_INFO("FOV_Top_Right = %d",Robot_Position.FOV_Top_Right.x);
+//     ROS_INFO("FOV_Top_Right = %d",Robot_Position.FOV_Top_Right.y);
+//     ROS_INFO("FOV_Bottom_Right = %d",Robot_Position.FOV_Bottom_Right.x);
+//     ROS_INFO("FOV_Bottom_Right = %d",Robot_Position.FOV_Bottom_Right.y);
+//     ROS_INFO("FOV_Top_Left = %d",Robot_Position.FOV_Top_Left.x);
+//     ROS_INFO("FOV_Top_Left = %d",Robot_Position.FOV_Top_Left.y);
+//     ROS_INFO("FOV_Bottom_Left = %d",Robot_Position.FOV_Bottom_Left.x);
+//     ROS_INFO("FOV_Bottom_Left = %d",Robot_Position.FOV_Bottom_Left.y);*/
+
+    
+//     msg_DrawRobotPos = cv_bridge::CvImage(std_msgs::Header(), "bgr8", DrawRobotPos()).toImageMsg();
+//     msg_ParticlePoint = cv_bridge::CvImage(std_msgs::Header(), "bgr8", DrawParticlePoint()).toImageMsg();
+
+//     DrawRobotPos_Publisher.publish(msg_DrawRobotPos);
+//     ParticlePoint_Publisher.publish(msg_ParticlePoint);
+//     waitKey(10);
+// }
 

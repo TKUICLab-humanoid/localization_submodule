@@ -1,30 +1,104 @@
 #include "IMCL/IMCL.h"
 
-void IMonteCarlo::Prediction(vector<int> u)
+IMonteCarlo::IMonteCarlo()
+{
+    noises << 0.005, 0.01, 0.005;
+    Q_ << 0.1, 0, 0, 0.1;
+
+    
+    rand_angle_init = 5;
+    particlepoint_num = PARTICLNUM;
+    excellent_particle_num = EXCELLENTPARTICLNUM;
+    Robot_Position.postion.x = -1; //830  700
+    Robot_Position.postion.y = -1; //640  370
+    Robot_Position.angle = -1.0;
+
+    step_count = 0;
+    //////////////////KLD//////////////////
+    min_particlepoint_num = 50;
+    kld_err = 0.45;             //defalut 0.05
+    kld_z = 0.99;               //defalut 0.99
+    //////////////////KLD//////////////////
+
+    //////////////////Augmented_MCL//////////////////
+    weight_avg = 0.0;       //the average of the weight of particlepoint
+    weight_slow = 0.0;      //the long-term weight of particlepoint
+    weight_fast = 0.0;      //the short-term weight of particlepoint
+    alpha_slow = 0.003;     //0.062;
+    alpha_fast = 0.1;       //0.1;
+    //////////////////Augmented_MCL//////////////////
+    total_weight = 0;
+    localization_flag = true;
+    find_best_flag = true;
+    use_feature_point = false;
+    use_lineinformation = true;
+    AngleLUT();
+
+}
+IMonteCarlo::~IMonteCarlo()
+{
+    Angle_sin.clear();
+    Angle_cos.clear();
+}
+
+/**Initialize the parameters**/
+void IMonteCarlo::Initialize(unsigned int landmark_size)
+{
+    ROS_INFO("ParticlePointinit");
+    localization_flag = true;
+    // noise << 0.005, 0.01, 0.005;
+    
+    for (auto& p : particles)
+    {
+        p.pos.pose = Point(0,0);
+        p.pos.angle = 0.0;
+        p.factors = factors;
+        p.wfactors = wfactor;
+        p.fitness_value = 0.0;
+        p.likehood = 1.0 / particlepointnum;
+        p.landmark_list.resize(landmark_size);
+        for (int j = 0; j < landmark_size; j++) 
+        {
+            p.landmark_list[j].mu << 0,0;
+            p.landmark_list[j].sigma << 0, 0, 0, 0;
+        }
+        particlepoint.push_back(p);
+    }
+}
+
+void IMonteCarlo::Prediction(const movement_data& u)
 {
     ROS_INFO("StatePredict");
-    vector<ParticlePoint> tmp;
+    // vector<ParticlePoint> tmp;
     //-------------add motion error coefficients---------------
-    for(int i = 0; i < particlepoint_num; ++i)
+    for(auto& p : particles)
     {
-        ParticlePoint current_particle;
-        Movement(u[0],u[1],u[2],u[3],u[4]);
-        current_particle.pos.pose.x = posx;
-        current_particle.pos.pose.y = posy;
-        current_particle.pos.angle = rotation;
-        tmp.push_back(current_particle);
+        // ParticlePoint current_particle;
+        Movement(u.straight,u.drift,u.rotational,u.moving,u.dt);
+        p.pos.pose.x = posx;
+        p.pos.pose.y = posy;
+        p.pos.angle = rotation;
+        // tmp.push_back(p);
     }
-    particlepoint.clear();
-    particlepoint = tmp;
+    // particlepoint.clear();
+    // particlepoint = tmp;
     ROS_INFO("particlepoint size = %d",particlepoint.size());
 }
 
-void IMonteCarlo::Update()
+void IMonteCarlo::Update(const vector<observation_data>& observations)
 {
     use_feature_point = false;
     use_lineinformation = true;
-    totalweight = calcWeight(&feature_point_observation_data[0], &Line_observation_data[0]);
-    
+    int weightsum = 0;
+    for(auto& p : particles)
+    {
+        for (const auto& z : observations)
+        {
+            weightsum += calcWeight(z.featurepoint_scan_line, z.landmark_list);
+
+        }
+        totalweight += weightsum;
+    }
 }
 
 void IMonteCarlo::KLD_Sampling()
@@ -144,6 +218,7 @@ void IMonteCarlo::resample()
         ParticlePoint current_particle;
         if(random <= reset_random_threshold)
         {
+            find_best_flag = true;
             current_particle.postion.x = x_random_distribution(x_generator);
             current_particle.postion.y = y_random_distribution(y_generator);
             current_particle.angle = normalize_angle(Robot_Position.angle + rand()%rand_angle - rand_angle_init);
@@ -162,3 +237,90 @@ void IMonteCarlo::resample()
     particlepoint = tmp;
     
 }
+
+void IMonteCarlo::NoLookField(const movement_data& u)
+{
+    ROS_INFO("NoLookField");
+
+    for(int i = 0; i < particlepoint_num; ++i)
+    {
+        posx = particlepoint[i].postion.x;
+        posy = particlepoint[i].postion.y;
+        rotation = particlepoint[i].angle;
+        Movement(u.straight,u.drift,u.rotational,u.moving,u.dt);          
+        particlepoint[i].postion.x = posx;
+        particlepoint[i].postion.y = posy;
+        particlepoint[i].angle = rotation;
+        ROS_INFO("posx = %d,posy = %d,rotation = %d",posx,posy,rotation);
+    }
+    posx = Robot_Position.postion.x;
+    posy = Robot_Position.postion.y;
+    rotation = Robot_Position.angle;
+    Movement(u.straight,u.drift,u.rotational,u.moving,u.dt); 
+    Robot_Position.postion.x = posx;
+    Robot_Position.postion.y = posy;
+    Robot_Position.angle = rotation;
+    ROS_INFO("posx = %d,posy = %d,rotation = %d",posx,posy,rotation);
+
+    // float move_x = 0.0;
+    // float move_y = 0.0;
+    // float y_dir_angle = 0.0;
+    // for(int i = 0; i < particlepoint_num; ++i)
+    // { 
+    //     particlepoint[i].angle = normalize_angle(Robot_Position.angle);
+    //     if(continuous_y > 0)
+    //     {
+    //         float y_dir_angle = normalize_angle(particlepoint[i].angle + 90.0);
+    //     }
+    //     else
+    //     {
+    //         float y_dir_angle = normalize_angle(particlepoint[i].angle - 90.0);
+    //     }
+    //     move_x = cos(particlepoint[i].angle * DEG2RAD) * continuous_x / 1000 + cos(y_dir_angle * DEG2RAD) * continuous_y / 1000;
+    //     move_y = -(sin(particlepoint[i].angle * DEG2RAD) * continuous_x / 1000 + sin(y_dir_angle * DEG2RAD) * continuous_y / 1000);
+    //     move_x = 6.5 * move_x;
+    //     move_y = 6.5 * move_y;
+    //     if(step_count == 0)
+    //     {
+    //         particlepoint[i].postion.x = particlepoint[i].postion.x + (int)(move_x);
+    //         particlepoint[i].postion.y = particlepoint[i].postion.y + (int)(move_y);
+    //         //ROS_INFO("add the step");
+    //     }
+    //     else
+    //     {
+    //         particlepoint[i].postion.x = particlepoint[i].postion.x + (int)(move_x) * step_count;
+    //         particlepoint[i].postion.y = particlepoint[i].postion.y + (int)(move_y) * step_count;
+    //         //ROS_INFO("add the step");
+    //         //step_count = 0;
+    //     }
+    // }
+    // Robot_Position.angle = normalize_angle(Robot_Position.angle);
+    // if(continuous_y > 0)
+    // {
+    //     float y_dir_angle = normalize_angle(Robot_Position.angle + 90.0);
+    // }
+    // else
+    // {
+    //     float y_dir_angle = normalize_angle(Robot_Position.angle - 90.0);
+    // }
+    // move_x = cos(Robot_Position.angle * DEG2RAD) * continuous_x / 1000 + cos(y_dir_angle * DEG2RAD) * continuous_y / 1000;
+    // move_y = -(sin(Robot_Position.angle * DEG2RAD) * continuous_x / 1000 + sin(y_dir_angle * DEG2RAD) * continuous_y / 1000);
+    // move_x = 6.5 * move_x;
+    // move_y = 6.5 * move_y;
+    // if(step_count == 0)
+    // {
+    //     Robot_Position.postion.x = Robot_Position.postion.x + (int)(move_x);
+    //     Robot_Position.postion.y = Robot_Position.postion.y + (int)(move_y);
+    //     //ROS_INFO("add the step");
+    // }
+    // else
+    // {
+    //     Robot_Position.postion.x = Robot_Position.postion.x + (int)(move_x) * step_count;
+    //     Robot_Position.postion.y = Robot_Position.postion.y + (int)(move_y) * step_count;
+    //     //ROS_INFO("add the step");
+    //     //step_count = 0;
+    // }
+    localization_flag = false;
+}
+
+

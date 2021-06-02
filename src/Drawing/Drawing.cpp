@@ -331,7 +331,7 @@ Mat Drawing::DrawFOV()
 
         cv::polylines(tmp_FOV, FOV_Point_tmp, true, Scalar(128, 128, 128), 1);//第2個引數可以採用contour或者contours，均可
 	    //cv::fillPoly(tmp_FOV, ppt, npt,  1, Scalar(128, 128, 128));//fillPoly函式的第二個引數是二維陣列！！
-        circle(tmp_FOV, Point(particlepoint[i].postion.x,particlepoint[i].postion.y), 2, Scalar(255, 255, 0), 4);
+        circle(tmp_FOV, Point(particlepoint[i].pos.pose.x,particlepoint[i].pos.pose.y), 2, Scalar(255, 255, 0), 4);
     }
     FOV_Point_tmp.clear();
     return tmp_FOV;
@@ -359,7 +359,7 @@ Mat Drawing::DrawParticlePoint()
     Mat ParticlePoint_tmp = Soccer_Field.clone();
     for(int i = 0; i < particlepoint.size(); i++)
     {
-        circle(ParticlePoint_tmp, Point(particlepoint[i].postion.x,particlepoint[i].postion.y), 3, Scalar(255, 0, 0), 1);
+        circle(ParticlePoint_tmp, Point(particlepoint[i].pos.pose.x,particlepoint[i].pos.pose.y), 3, Scalar(255, 0, 0), 1);
     }
     return ParticlePoint_tmp;
 }
@@ -376,7 +376,7 @@ Mat Drawing::DrawRobotPos()
 
     cv::polylines(oframe, Robot_FOV_tmp, true, Scalar(128, 128, 128), 1);//第2個引數可以採用contour或者contours，均可
 
-    circle(oframe, Point(Robot_Position.postion.x,Robot_Position.postion.y), 5, Scalar(255, 255, 0), 2);
+    circle(oframe, Point(Robot_Position.pos.pose.x,Robot_Position.pos.pose.y), 5, Scalar(255, 255, 0), 2);
     for(int i = 0; i < Robot_Position.featurepoint_scan_line.size(); i++)
     {
         for(int j = 0; j < Robot_Position.featurepoint_scan_line[i].feature_point.size(); j++)

@@ -52,7 +52,7 @@ class ParticleFilter : public FastSlam
         Eigen::Vector3d noises;
 
         //mesurement noise
-        Eigen::Matrix2d Q_;
+        Eigen::Matrix2d R;
         
         int sendbodyauto_x;
         int sendbodyauto_y;
@@ -61,15 +61,17 @@ class ParticleFilter : public FastSlam
         int continuous_y;
         int continuous_theta;
         int step_count;
-
+        int SigmaIMU;
+        bool use_feature_point;
+        bool use_lineinformation;
         /////WMCL//////
-        int wfactor;
+        int totalweights;
         int rotation;
         int posx;
         int posy;
         vector<Point> regions;
-        void Motion(int straight = 0, int drift = 0, int rotational = 0, int moving = 1, int dt = 0);
-        void Movement(int straight = 0, int drift = 0, int rotational = 0, int moving = 1, int dt = 0);
+        void Motion(float straight = 0., float drift = 0., float rotational = 0., float dt = 0.,double wfactor = 0.);
+        void Movement(float straight = 0., float drift = 0., float rotational = 0., float moving = 1., float dt = 0.,double wfactor = 0.);
         void GetUpBackUp();
         void GetUpFrontUp();
         /////WMCL//////
@@ -86,10 +88,11 @@ class ParticleFilter : public FastSlam
         void FindBestParticle(scan_line *feature_point_observation_data, LineINF *Line_observation_data);
         void FindRobotPosition(float x_avg, float y_avg);
         int TournamentResample(int excellent_particle_num);
-        void StatePredict(vector<int> u);
+        void StatePredict(const movement_data& u);
         // double ComputeAngLikelihoodDeg(double angle, double base, double std_deviation);
         void LandMarkMode(Landmarkmode mode);
         void GetBestPoseAndLandmark(VectorXd& mu_ );
+        void resample();
 
         //void CalcNewParticle();
 
@@ -98,7 +101,7 @@ class ParticleFilter : public FastSlam
 
         void CalcFOVArea_averagepos(int focus, int top, int bottom, int top_width, int bottom_width, float horizontal_head_angle);
 
-        void NoLookField(vector<int> u);
+        void NoLookField(const movement_data& u);
 
         bool GetFindBestFlag(){return find_best_flag;}
         bool GetLocalizationFlag(){return localization_flag;}
