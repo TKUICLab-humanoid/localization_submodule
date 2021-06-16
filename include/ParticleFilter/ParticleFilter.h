@@ -66,7 +66,7 @@ class ParticleFilter : public FastSlam
         bool use_lineinformation;
         /////WMCL//////
         int totalweights;
-        int rotation;
+        float rotation;
         int posx;
         int posy;
         vector<Point> regions;

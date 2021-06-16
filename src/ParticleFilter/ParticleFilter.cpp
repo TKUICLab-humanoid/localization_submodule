@@ -18,15 +18,18 @@ ParticleFilter::ParticleFilter()
 
     //////////////////W_MCL////////////////
     
-    factors = { 1, 2, 1, 500, 5,
-                1, 2, 1, 500, 7,
-                1, 2, 1, 100, 5};
-    rotation = 0;
+    // factors = { 1, 2, 1, 500, 5,
+    //             1, 2, 1, 500, 7,
+    //             1, 2, 1, 100, 5};
+    factors = { 0, 0, 0, 0,  0,  0, 0, 0, 0,  0,  0, 0, 0, 0,  0};
+    // factors = { 1, 2, 1, 0, 10,  1, 2, 1, 0, 20,  1, 2, 1, 0, 10};
+    // factors = { 0, 0, 0, 0, 10,  0, 0, 0, 0, 20,  0, 0, 0, 0, 10};
+    // factors = { 0, 0, 0, 50, 0,  0, 0, 0, 50, 0,  0, 0, 0, 10, 0};
+    rotation = 0.0;
     regions = {Point(0, 900), Point(0, 600), Point(-180, 180)};
     posx = 0;
     posy = 0;
-    rotation = 0;
-    total_weight = 0;
+    total_weight = 0.0;
     R << 0.1, 0, 0, 0.1;
 
     //////////////////KLD//////////////////
@@ -131,39 +134,39 @@ void ParticleFilter::Motion(float straight, float drift, float rotational, float
                         gauss(factors[8] * wfactor) +
                         gauss(factors[9]));
 
-    int Omega = int(    rotational +
+    float Omega =       rotational +
                         gauss(factors[10] * straight) +
                         gauss(factors[11] * drift) +
                         gauss(factors[12] * rotational) +
                         gauss(factors[13] * wfactor) +
-                        gauss(factors[14])); 
+                        gauss(factors[14]); 
 
     Omega = Omega * DEG2RAD;
     // ROS_INFO("Forward = %d ,Side = %d ,Omega = %d ",Forward,Side,Omega);
-    int Theta =  rotation * DEG2RAD;
+    float Theta =  rotation * DEG2RAD;
     int x = 0;
     int y = 0;
-    int Direction = 0;
-    int Dir2 = 0;
+    float Direction = 0;
+    float Dir2 = 0;
     
     if(Omega == 0)
     {
         Direction = Theta;
-        x = (   posx +
+        x = int(round(   posx +
                 Forward * cos(Theta) * dt +
-                Side * sin(Theta) * dt);
-        y = (   posy -
+                Side * sin(Theta) * dt));
+        y = int(round(   posy -
                 Forward * sin(Theta) * dt +
-                Side * cos(Theta) * dt);
+                Side * cos(Theta) * dt));
     }else{
         Direction = Theta + Omega * dt;
         Dir2 = -Theta + Omega * dt;
-        x = (posx +
+        x = int(round(posx +
             Forward / Omega * (sin(Direction) - sin(Theta)) -
-            Side / Omega * (cos(-Theta) - cos(Dir2)));
-        y = (posy -
+            Side / Omega * (cos(-Theta) - cos(Dir2))));
+        y = int(round(posy -
             Forward / Omega * (cos(Theta) - cos(Direction)) -
-            Side / Omega * (sin(-Theta) - sin(Dir2)));
+            Side / Omega * (sin(-Theta) - sin(Dir2))));
     }
 
     if( x < regions[0].x || x > regions[0].y ||
@@ -177,7 +180,7 @@ void ParticleFilter::Motion(float straight, float drift, float rotational, float
     posy = y;
     float rotat = Direction * RAD2DEG;
     rotation = normalize_angle(rotat);
-    // ROS_INFO("posx = %d ,posy = %d ,rotation = %d ",posx,posy,rotation);
+    // ROS_INFO("posx = %d ,posy = %d ,rotation = %f ",posx,posy,rotation);
 }
 
 void ParticleFilter::GetUpBackUp()
@@ -342,8 +345,8 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
                     {
                         if(m < Line_observation_data_Size-1)
                         {
-                            ROS_INFO("(*(Line_observation_data + m)).distance = %f",(*(Line_observation_data + m)).distance);
-                            ROS_INFO("(*(Line_observation_data + m)).Line_theta = %f",(*(Line_observation_data + m)).Line_theta);
+                            ROS_INFO("(*(Line_observation_data + %d)).distance = %f",m,(*(Line_observation_data + m)).distance);
+                            ROS_INFO("(*(Line_observation_data + %d)).Line_theta = %f",m,(*(Line_observation_data + m)).Line_theta);
                             z_actual << (*(Line_observation_data + m)).distance, (*(Line_observation_data + m)).Line_theta;
                         }else{
                             z_actual << 0.0, 0.0;
@@ -1084,7 +1087,7 @@ void ParticleFilter::NoLookField(const movement_data& u)
             particlepoint[i].pos.pose.x = posx;
             particlepoint[i].pos.pose.y = posy;
             particlepoint[i].pos.angle = rotation;
-            ROS_INFO("posx = %d,posy = %d,rotation = %d",posx,posy,rotation);
+            ROS_INFO("posx = %d,posy = %d,rotation = %f",posx,posy,rotation);
         }
         posx = Robot_Position.pos.pose.x;
         posy = Robot_Position.pos.pose.y;
@@ -1093,7 +1096,7 @@ void ParticleFilter::NoLookField(const movement_data& u)
         Robot_Position.pos.pose.x = posx;
         Robot_Position.pos.pose.y = posy;
         Robot_Position.pos.angle = rotation;
-        ROS_INFO("posx = %d,posy = %d,rotation = %d",posx,posy,rotation);
+        ROS_INFO("posx = %d,posy = %d,rotation = %f",posx,posy,rotation);
 
         // float move_x = 0.0;
         // float move_y = 0.0;
