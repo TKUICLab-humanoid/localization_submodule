@@ -18,7 +18,7 @@
 
 #include <geometry_msgs/Vector3Stamped.h>
 
-//#include "tku_libs/TKU_tool.h"
+#include "tku_libs/TKU_tool.h"
 #include "tku_libs/RosCommunication.h"
 
 #include "Drawing/Drawing.h"
@@ -47,7 +47,7 @@ class Localization_main : public Drawing
         ~Localization_main();
         void strategy_main();
         void strategy_init();
-
+        ToolInstance* tool  = ToolInstance::getInstance();
         void SaveLoopRate();
         void SaveRobotPosERR();
 		string DtoS(double value);

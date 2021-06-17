@@ -26,8 +26,6 @@ class ParticleFilter : public FastSlam
         
         //////////////////WMCL/////////////////
         float total_weight;
-        
-
 
         //////////////////Augmented_MCL//////////////////
         float weight_avg;       //the average of the weight of particlepoint
@@ -65,6 +63,11 @@ class ParticleFilter : public FastSlam
         bool use_feature_point;
         bool use_lineinformation;
         /////WMCL//////
+
+        int init_robot_pos_x;
+        int init_robot_pos_y;
+        float init_robot_pos_dir;
+
         int totalweights;
         float rotation;
         int posx;
@@ -88,7 +91,7 @@ class ParticleFilter : public FastSlam
         void FindBestParticle(scan_line *feature_point_observation_data, LineINF *Line_observation_data);
         void FindRobotPosition(float x_avg, float y_avg);
         int TournamentResample(int excellent_particle_num);
-        void StatePredict(const movement_data& u);
+        void StatePredict(const movement_data& u,bool first_loop_flag);
         // double ComputeAngLikelihoodDeg(double angle, double base, double std_deviation);
         void LandMarkMode(Landmarkmode mode);
         void GetBestPoseAndLandmark(VectorXd& mu_ );

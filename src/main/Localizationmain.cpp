@@ -240,6 +240,10 @@ void Localization_main::GetSetRobotPosFunction(const tku_msgs::SetRobotPos &msg)
         robot_pos_x_init = msg.x;
         robot_pos_y_init = msg.y;
         robot_pos_dir_init = msg.dir;
+
+        init_robot_pos_x = msg.x;
+        init_robot_pos_y = msg.y;
+        init_robot_pos_dir = msg.dir;
     }
 }
 
@@ -363,15 +367,15 @@ void Localization_main::strategy_init()
         Line_observation_data_flag = false;
         ROS_INFO("No Line observation Data");
     }   
-    ParticlePointInitialize(field_list.size());
     Soccer_Field = DrawField();
-
+    ParticlePointInitialize(field_list.size());
     observation_data.imagestate = false;
 }
 
 void Localization_main::strategy_main()
 {
     //imshow("Soccer_Field",Soccer_Field);
+    ROS_INFO("straight = %f ,drift = %f ,rotational = %f,dt = %f",Velocity_value.straight,Velocity_value.drift,Velocity_value.rotational,Velocity_value.dt); 
     if(!observation_data.imagestate)
     {
         NoLookField(Velocity_value);
@@ -385,10 +389,7 @@ void Localization_main::strategy_main()
         {
             first_loop_flag = false;
         }
-        else
-        {
-            StatePredict(Velocity_value);
-        }
+        StatePredict(Velocity_value,first_loop_flag);
         CalcFOVArea(Camera_Focus, Image_Top_Length, Image_Bottom_Length, Image_Top_Width_Length, Image_Bottom_Width_Length, Horizontal_Head_Angle);
         FindFeaturePoint();
         LandMarkMode(Landmarkmode::PARTICLEPIONT);
@@ -426,9 +427,10 @@ void Localization_main::strategy_main()
     //tool->Delay(4000);
     //ROS_INFO("distance = %d",Robot_Position.featurepoint[18].dis);
     //ROS_INFO("distance_y = %d",Robot_Position.featurepoint[18].y_dis);
-    //ROS_INFO("Robot_pos_x = %d",Robot_Position.pos.pose.x);
-    //ROS_INFO("Robot_pos_y = %d",Robot_Position.pos.pose.y);
-
+    ROS_INFO("Robot_pos_x = %d",Robot_Position.pos.pose.x);
+    ROS_INFO("Robot_pos_y = %d",Robot_Position.pos.pose.y);
+    ROS_INFO("Robot_pos_dir = %f",Robot_Position.pos.angle);
+    tool->Delay(10000);
     /*ROS_INFO("FOV_Top_Right = %d",Robot_Position.FOV_Top_Right.x);
     ROS_INFO("FOV_Top_Right = %d",Robot_Position.FOV_Top_Right.y);
     ROS_INFO("FOV_Bottom_Right = %d",Robot_Position.FOV_Bottom_Right.x);
