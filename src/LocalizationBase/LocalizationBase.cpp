@@ -139,6 +139,10 @@ LineINF LocalizationBase::LineInformation(Point A, Point B, Point Bottom_left, P
     double mindis = MinDistance(tmp,Bottom_center/*Point(abs(Bottom_right.x-Bottom_left.x),abs(Bottom_right.y-Bottom_left.y))*/);
     lineinf.distance = mindis;
     lineinf.Nearest_point = MinIntersectPoint(tmp,Bottom_center,mindis);
+
+    // ROS_INFO("lineinf point = %d %d %d %d ",lineinf.start_point.x,lineinf.start_point.y,lineinf.end_point.x,lineinf.end_point.y);
+    // ROS_INFO("distance = %f Nearest_point = %d %d",lineinf.distance,lineinf.Nearest_point.x,lineinf.Nearest_point.y);
+
     return lineinf;
 }
 
@@ -174,24 +178,65 @@ Point LocalizationBase::MinIntersectPoint(Vec4i line, Point A, double mindistanc
     float para_a = (float)(y1-y2)/(x1-x2);
     float para_b = (float)(x1*y2-x2*y1)/(x1-x2);
     Point minIntersectPoint = Point(0,0);
-    for(int i = 0; i < abs(x2-x1); i++ )
+    double min_value = 0.0;
+    
+    // ROS_INFO("x2-x1 == %d",abs(x2-x1));
+    if(abs(x2-x1) == 0)
     {
-        float x = 0;
-        float y = 0;
-        float dis = 0;
-        if(x2<x1)
+        for(int i = 0; i < abs(y2-y1); i++ )
         {
-            x = x2 + i;
-        }else{
-            x = x1 + i;
+            float x = 0.0;
+            float y = 0.0;
+            double dis = 0.0;
+            if(y2<y1)
+            {
+                y = y2 + i;
+            }else{
+                y = y1 + i;
+            }
+            x = x1;
+            dis = sqrt(pow(A.x-x,2)+pow(A.y-y,2));
+            if( i == 0)
+            {
+                min_value = dis;
+                minIntersectPoint = Point(x,y);
+            }
+            if(min_value > dis)
+            {
+                minIntersectPoint = Point(x,y);
+                min_value = dis;
+            }
+            // ROS_INFO(" dis = %f min_value = %f,mindistance = %f",dis ,min_value,mindistance);
         }
-        y = x*para_a+para_b;
-        dis = sqrt(pow(A.x-x,2)+pow(A.y-y,2));
-        if(dis == mindistance)
+    }else{
+        for(int i = 0; i < abs(x2-x1); i++ )
         {
-            minIntersectPoint = Point(x,y);
+            float x = 0.0;
+            float y = 0.0;
+            double dis = 0.0;
+            if(x2<x1)
+            {
+                x = x2 + i;
+            }else{
+                x = x1 + i;
+            }
+            y = x*para_a+para_b;
+            dis = sqrt(pow(A.x-x,2)+pow(A.y-y,2));
+            if( i == 0)
+            {
+                min_value = dis;
+                minIntersectPoint = Point(x,y);
+            }
+            if(min_value > dis)
+            {
+                minIntersectPoint = Point(x,y);
+                min_value = dis;
+            }
+            // ROS_INFO(" dis = %f min_value = %f,mindistance = %f",dis ,min_value,mindistance);
         }
     }
+
+    
     // ROS_INFO("MinIntersectPoint = (%d,%d)",minIntersectPoint.x,minIntersectPoint.y);
     return minIntersectPoint;
 }

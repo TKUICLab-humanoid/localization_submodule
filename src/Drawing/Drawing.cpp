@@ -99,19 +99,20 @@ Mat Drawing::DrawField()    //E223 field
             int y1 = 0;
             int x2 = 0;
             int y2 = 0;
-            // FieldLine_data field_data_tmp;
-            if( j < field_tmp.size()-1)
+
+            if(j == 3)
             {
+                x1 = field_tmp[j].x;
+                y1 = field_tmp[j].y;
+                x2 = field_tmp[0].x;
+                y2 = field_tmp[0].y;
+            }else{
                 x1 = field_tmp[j].x;
                 y1 = field_tmp[j].y;
                 x2 = field_tmp[j+1].x;
                 y2 = field_tmp[j+1].y;
-            }else{
-                x1 = field_tmp[j].x;
-                y1 = field_tmp[j].x;
-                x2 = field_tmp[0].y;
-                y2 = field_tmp[0].y;
             }
+           
             FieldLine_data FieldLine_tmp;
             if((y1-y2) == 0)
             {
@@ -133,10 +134,28 @@ Mat Drawing::DrawField()    //E223 field
                     FieldLine_tmp.end_point = Point(x1,y1);
                 }
             }
+            if(i==5)
+            {
+                field_list.push_back(FieldLine_tmp);
+                break;
+            }
+            // ROS_INFO("FieldLine_tmp(%d %d) %d %d %d %d ", i,j,FieldLine_tmp.start_point.x,FieldLine_tmp.start_point.y,FieldLine_tmp.end_point.x,FieldLine_tmp.end_point.y);
             field_list.push_back(FieldLine_tmp);
         }
     }
 
+
+    // Mat test = Field.clone();
+    // for(int i = 0; i<field_list.size();i++)
+    // {
+    //     FieldLine_data aa = field_list[i];
+    //     Point start = aa.start_point;
+    //     Point end = aa.end_point;
+    //     line(test, start, end, Scalar(0, 255, 255), 3);
+    // }
+    // imshow("test",test);
+
+    // ROS_INFO("field_list = %d", field_list.size());
     cv::Canny(Field, Field_edge, 50, 150, 3);
     Field_edge=convertTo3Channels(Field_edge);
     line(Field_edge, Point(42,268), Point(102,268), Scalar(0, 255, 255), 3);
@@ -306,15 +325,18 @@ Mat Drawing::DrawRobotPos()
     cv::polylines(oframe, Robot_FOV_tmp, true, Scalar(128, 128, 128), 1);//第2個引數可以採用contour或者contours，均可
 
     circle(oframe, Point(Robot_Position.pos.pose.x,Robot_Position.pos.pose.y), 5, Scalar(255, 255, 0), 2);
-    for(int i = 0; i < Robot_Position.featurepoint_scan_line.size(); i++)
+    for(int i = 0; i < Robot_Position.landmark_list.size(); i++)
     {
-        for(int j = 0; j < Robot_Position.featurepoint_scan_line[i].feature_point.size(); j++)
-        {
-            if(Robot_Position.featurepoint_scan_line[i].feature_point[j].x != -1 && Robot_Position.featurepoint_scan_line[i].feature_point[j].y != -1)
-            {
-                circle(oframe, Point(Robot_Position.featurepoint_scan_line[i].feature_point[j].x,Robot_Position.featurepoint_scan_line[i].feature_point[j].y), 3, Scalar(255, 0, 0), 3);
-            }
-        }
+        Point start = Robot_Position.landmark_list[i].start_point;
+        Point end = Robot_Position.landmark_list[i].end_point;
+        line(oframe, start, end, Scalar(0, 0, 255), 2);
+        // for(int j = 0; j < Robot_Position.landmark_list[i].feature_point.size(); j++)
+        // {
+        //     if(Robot_Position.landmark_list[i].feature_point[j].x != -1 && Robot_Position.landmark_list[i].feature_point[j].y != -1)
+        //     {
+        //         circle(oframe, Point(Robot_Position.landmark_list[i].feature_point[j].x,Robot_Position.landmark_list[i].feature_point[j].y), 3, Scalar(255, 0, 0), 3);
+        //     }
+        // }
     }
 
     Robot_FOV_tmp.clear();

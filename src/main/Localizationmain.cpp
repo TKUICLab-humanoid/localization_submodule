@@ -369,13 +369,14 @@ void Localization_main::strategy_init()
     }   
     Soccer_Field = DrawField();
     ParticlePointInitialize(field_list.size());
+    ROS_INFO("robot_pos_x_init = %d robot_pos_y_init = %d robot_pos_dir_init = %f",robot_pos_x_init,robot_pos_y_init,robot_pos_dir_init);
     observation_data.imagestate = false;
 }
 
 void Localization_main::strategy_main()
 {
-    //imshow("Soccer_Field",Soccer_Field);
-    ROS_INFO("straight = %f ,drift = %f ,rotational = %f,dt = %f",Velocity_value.straight,Velocity_value.drift,Velocity_value.rotational,Velocity_value.dt); 
+    // imshow("Soccer_Field",Soccer_Field);
+    // ROS_INFO("straight = %f ,drift = %f ,rotational = %f,dt = %f",Velocity_value.straight,Velocity_value.drift,Velocity_value.rotational,Velocity_value.dt); 
     if(!observation_data.imagestate)
     {
         NoLookField(Velocity_value);
@@ -385,15 +386,15 @@ void Localization_main::strategy_main()
     }
     else
     {
+        StatePredict(Velocity_value,first_loop_flag);
         if(first_loop_flag)
         {
             first_loop_flag = false;
         }
-        StatePredict(Velocity_value,first_loop_flag);
         CalcFOVArea(Camera_Focus, Image_Top_Length, Image_Bottom_Length, Image_Top_Width_Length, Image_Bottom_Width_Length, Horizontal_Head_Angle);
         FindFeaturePoint();
         LandMarkMode(Landmarkmode::PARTICLEPIONT);
-        if(observation_data.scan_line.size() > 0)
+        if(observation_data.scan_line.size() > 0 && observation_data.landmark.size()>=0)
         {
             FindBestParticle(&feature_point_observation_data[0], &Line_observation_data[0]);
             CalcFOVArea_averagepos(Camera_Focus, Image_Top_Length, Image_Bottom_Length, Image_Top_Width_Length, Image_Bottom_Width_Length, Horizontal_Head_Angle);
@@ -410,7 +411,7 @@ void Localization_main::strategy_main()
         }
         
         //observation_data.clear();
-        //imshow("FOV_Field",DrawParticlePoint());
+        // imshow("FOV_Field",DrawParticlePoint());
         // namedWindow("ParticlePoint",WINDOW_NORMAL);
         // imshow("ParticlePoint",DrawParticlePoint());
         // namedWindow("RobotPos",WINDOW_AUTOSIZE);
@@ -424,13 +425,13 @@ void Localization_main::strategy_main()
     robot_pos.dir = Robot_Position.pos.angle;
     RobotPos_Publisher.publish(robot_pos);
 
-    //tool->Delay(4000);
+    // tool->Delay(4000);
     //ROS_INFO("distance = %d",Robot_Position.featurepoint[18].dis);
     //ROS_INFO("distance_y = %d",Robot_Position.featurepoint[18].y_dis);
     ROS_INFO("Robot_pos_x = %d",Robot_Position.pos.pose.x);
     ROS_INFO("Robot_pos_y = %d",Robot_Position.pos.pose.y);
     ROS_INFO("Robot_pos_dir = %f",Robot_Position.pos.angle);
-    tool->Delay(10000);
+    // tool->Delay(5000);
     /*ROS_INFO("FOV_Top_Right = %d",Robot_Position.FOV_Top_Right.x);
     ROS_INFO("FOV_Top_Right = %d",Robot_Position.FOV_Top_Right.y);
     ROS_INFO("FOV_Bottom_Right = %d",Robot_Position.FOV_Bottom_Right.x);

@@ -26,7 +26,10 @@ class ParticleFilter : public FastSlam
         
         //////////////////WMCL/////////////////
         float total_weight;
-
+        int totalweights;
+        float rotation;
+        int posx;
+        int posy;
         //////////////////Augmented_MCL//////////////////
         float weight_avg;       //the average of the weight of particlepoint
         float weight_slow;      //the long-term weight of particlepoint
@@ -68,13 +71,9 @@ class ParticleFilter : public FastSlam
         int init_robot_pos_y;
         float init_robot_pos_dir;
 
-        int totalweights;
-        float rotation;
-        int posx;
-        int posy;
         vector<Point> regions;
-        void Motion(float straight = 0., float drift = 0., float rotational = 0., float dt = 0.,double wfactor = 0.);
-        void Movement(float straight = 0., float drift = 0., float rotational = 0., float moving = 1., float dt = 0.,double wfactor = 0.);
+        void Motion(ParticlePoint &p,float straight = 0., float drift = 0., float rotational = 0., float dt = 0.);
+        void Movement(ParticlePoint &p,float straight = 0., float drift = 0., float rotational = 0., float moving = 1., float dt = 0.);
         void GetUpBackUp();
         void GetUpFrontUp();
         /////WMCL//////
