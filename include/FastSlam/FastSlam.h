@@ -7,5 +7,5 @@ class FastSlam : public LocalizationBase
         ~FastSlam();
         Eigen::Matrix2d Q_;
         int N;
-        void Measurement_model(const ParticlePoint& p, int LandMarkID, Eigen::Vector2d& h, Eigen::MatrixXd& H) ;
+        void Measurement_model(const ParticlePoint& p, int LandMarkID, Eigen::Vector2d& h, Eigen::Matrix2d& H) ;
 };

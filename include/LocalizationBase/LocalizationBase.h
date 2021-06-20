@@ -43,6 +43,7 @@ struct FieldLine_data
     float x; // when x = value
     Point start_point;
     Point end_point;
+    int Line_ID;
 };
 
 struct movement_data
@@ -106,6 +107,7 @@ struct LineINF
     double distance;
     Point Nearest_point;
     Eigen::Vector2d mu;
+    bool obersvated;
     Eigen::Matrix2d sigma;
 };
 

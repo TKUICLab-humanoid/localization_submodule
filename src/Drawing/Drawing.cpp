@@ -90,6 +90,7 @@ Mat Drawing::DrawField()    //E223 field
     line(Field, Point(842,400), Point(858,400), Scalar(255, 255, 255), 3);
 
     field_list.clear();
+    int count = 0;
     for(int i = 0; i < field_point.size(); i++ )
     {
         vector<Point> field_tmp = field_point[i];
@@ -134,6 +135,8 @@ Mat Drawing::DrawField()    //E223 field
                     FieldLine_tmp.end_point = Point(x1,y1);
                 }
             }
+            FieldLine_tmp.Line_ID = count;
+            count ++;
             if(i==5)
             {
                 field_list.push_back(FieldLine_tmp);

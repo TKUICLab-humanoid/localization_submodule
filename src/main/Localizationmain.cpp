@@ -82,21 +82,26 @@ void Localization_main::GetObservationDataFunction(const tku_msgs::ObservationDa
     Point start_point;
     Point center_point;
     double Line_length;
-    double Line_theta;   
+    double Line_theta; 
     for(int i = 0; i < msg.landmark.size(); i++)
     {
         LineINF lineinf;
         lineinf.start_point = Point((int)msg.landmark[i].start_point.x,(int)msg.landmark[i].start_point.y);
         lineinf.end_point = Point((int)msg.landmark[i].end_point.x,(int)msg.landmark[i].end_point.y);
-        lineinf.center_point = Point((int)msg.landmark[i].center_point.x,(int)msg.landmark[i].center_point.y);
-        lineinf.Line_length = msg.landmark[i].Line_length;
-        lineinf.Line_theta = msg.landmark[i].Line_theta;
+        // lineinf.center_point = Point((int)msg.landmark[i].center_point.x,(int)msg.landmark[i].center_point.y);
+        // lineinf.Line_length = msg.landmark[i].Line_length;
+        // lineinf.Line_theta = msg.landmark[i].Line_theta;
         lineinf.distance = msg.landmark[i].relative_distance;
         lineinf.Nearest_point = Point((int)msg.landmark[i].Nearest_point.x,(int)msg.landmark[i].Nearest_point.y);
         Line_observation_data.push_back(lineinf);
     }
     Line_observation_data_Size = Line_observation_data.size();
-    
+    if(Line_observation_data.size() == 0)
+    {
+        Line_observation_data_flag = false;
+    }else{
+        Line_observation_data_flag = true;
+    }  
     for(int i = 0; i < msg.scan_line.size(); i++)
     {
         scan_line scan_tmp;
@@ -362,11 +367,7 @@ void Localization_main::strategy_init()
         Robot_Position.pos.angle = robot_pos_dir_init;
 
     }
-    if(Line_observation_data.size() == 0)
-    {
-        Line_observation_data_flag = false;
-        ROS_INFO("No Line observation Data");
-    }   
+     
     Soccer_Field = DrawField();
     ParticlePointInitialize(field_list.size());
     ROS_INFO("robot_pos_x_init = %d robot_pos_y_init = %d robot_pos_dir_init = %f",robot_pos_x_init,robot_pos_y_init,robot_pos_dir_init);
@@ -377,7 +378,7 @@ void Localization_main::strategy_main()
 {
     // imshow("Soccer_Field",Soccer_Field);
     // ROS_INFO("straight = %f ,drift = %f ,rotational = %f,dt = %f",Velocity_value.straight,Velocity_value.drift,Velocity_value.rotational,Velocity_value.dt); 
-    if(!observation_data.imagestate)
+    if(!observation_data.imagestate || !Line_observation_data_flag)
     {
         NoLookField(Velocity_value);
         CalcFOVArea_averagepos(Camera_Focus, Image_Top_Length, Image_Bottom_Length, Image_Top_Width_Length, Image_Bottom_Width_Length, Horizontal_Head_Angle);
