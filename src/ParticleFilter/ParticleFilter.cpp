@@ -345,6 +345,10 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
             for(int j = 0; j < Line_observation_data_Size; j++)
             {
                 double maxscore = 0.0;
+                if((*(Line_observation_data + j)).distance == 0.0)
+                {
+                    continue;
+                }
                 for(int m = 0; m < particlepoint[i].landmark_list.size(); m++)//計算虛擬地圖中的地標相似性
                 {
                     double p = 0.0;
@@ -358,8 +362,10 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
                         Eigen::Matrix2d H;
                         Measurement_model(particlepoint[i], m, h, H);
                         particlepoint[i].landmark_list[m].sigma = (H.transpose()*R.inverse()*H).inverse();
+                        cout<<" 2 particlepoint[i].landmark_list[m].sigma "<< endl << particlepoint[i].landmark_list[m].sigma <<endl;
+
                         particlepoint[i].landmark_list[m].obersvated = true;
-                        particlepoint[i].weight = particlepoint[i].weight * 0.2;
+                        particlepoint[i].weight = particlepoint[i].weight ;
                     }
                     else{
                         //get the Jacobian with respect to the landmark position
@@ -374,19 +380,20 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
                         //calculat the error between the z and expected Z
                         Eigen::Vector2d z_actual;
                         Point NearestPoint = (*(Line_observation_data + j)).Nearest_point;
-                        float angle = normalize_angle(atan2(NearestPoint.y, NearestPoint.x));
+                        float angle = normalize_angle(atan2(NearestPoint.y, NearestPoint.x)*RAD2DEG);
                         // z_actual << (*(Line_observation_data + j)).distance, angle;
                         z_actual << (*(Line_observation_data + j)).distance, angle;
 
                         Eigen::Vector2d z_diff = z_actual - expect_Z;
                         z_diff(1) = normalize_angle(z_diff(1));
                         particlepoint[i].landmark_list[m].sigma = particlepoint[i].landmark_list[m].sigma - K * G * sig;
+                        cout<<" 3 particlepoint[i].landmark_list[m].sigma "<< endl << particlepoint[i].landmark_list[m].sigma <<endl;
                         cout<<" G "<< endl << G <<endl;
-                        // cout<<" sig "<< endl << sig <<endl;
+                        cout<<" sig "<< endl << sig <<endl;
                         // cout<<" K " << endl <<  K <<endl;    
                         cout<<" Z " << endl <<  Z <<endl;
-                        // cout<<" expect_Z "<< endl << expect_Z <<endl;
-                        // cout<<" z_actual "<< endl << z_actual <<endl;
+                        cout<<" expect_Z "<< endl << expect_Z <<endl;
+                        cout<<" z_actual "<< endl << z_actual <<endl;
                         cout<<" z_diff "<< endl << z_diff <<endl;
                         // cout<<" z_diff.transpose() "<< endl << z_diff.transpose() <<endl;
                         // cout<<" Z.inverse() "<< endl << Z.inverse() <<endl;

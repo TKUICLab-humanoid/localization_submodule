@@ -16,10 +16,10 @@ void FastSlam::Measurement_model(const ParticlePoint& p, int LandMarkID, Eigen::
     Point particle_point = Point(p.pos.pose.x,p.pos.pose.y);//粒子點位置
 
     //use the current state of particle to predict measuremen
-    float delta_x = abs(landmark_point.x - particle_point.x);
-    float delta_y = abs(landmark_point.y - particle_point.y);
+    float delta_x = landmark_point.x - particle_point.x;
+    float delta_y = landmark_point.y - particle_point.y;
     double expect_distance   = sqrt(delta_x * delta_x + delta_y * delta_y);
-    double expect_angle = normalize_angle(atan2(delta_y, delta_x) - p.pos.angle);
+    double expect_angle = normalize_angle(atan2(delta_y, delta_x)*RAD2DEG - p.pos.angle);
     // ROS_INFO("delta_x = %f",delta_x);
     // ROS_INFO("delta_y = %f",delta_y);
     // ROS_INFO("expect_distance = %f",expect_distance);
