@@ -42,6 +42,20 @@ float LocalizationBase::normalize_angle(float phi)
     }
     return phi;
 }
+
+float LocalizationBase::normalize_angle_RAD(float phi) 
+{
+  //Normalize phi to be between -pi and pi
+    while(phi > M_PI) {
+        phi = phi - 2 * M_PI;
+    }
+
+    while(phi < -M_PI) {
+        phi = phi + 2 * M_PI;
+    }
+    return phi;
+}
+
 int LocalizationBase::Frame_Area(int coordinate, int range)
 {
     if (coordinate < 0)
@@ -135,7 +149,7 @@ LineINF LocalizationBase::LineInformation(Point A, Point B, Point Bottom_left, P
     lineinf.end_point = Point(B.x,B.y);
     lineinf.center_point = Point((A.x+B.x)/2,(A.y+B.y)/2);
     lineinf.Line_length = sqrt(pow((A.x-B.x),2)+pow((A.y-B.y),2));
-    lineinf.Line_theta = asin(cross/l1/l2);  //相對於FOVBottom的角度
+    lineinf.Line_theta = asin(cross/l1/l2)*RAD2DEG;  //相對於FOVBottom的角度
     double mindis = MinDistance(tmp,Bottom_center/*Point(abs(Bottom_right.x-Bottom_left.x),abs(Bottom_right.y-Bottom_left.y))*/);
     lineinf.distance = mindis;
     lineinf.Nearest_point = MinIntersectPoint(tmp,Bottom_center,mindis);

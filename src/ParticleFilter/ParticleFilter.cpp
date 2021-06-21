@@ -47,7 +47,7 @@ ParticleFilter::ParticleFilter()
 
     localization_flag = true;
     find_best_flag = true;
-    use_feature_point = false;
+    use_feature_point = true;
     use_lineinformation = true;
     SigmaIMU = 10;
 
@@ -71,7 +71,7 @@ void ParticleFilter::ParticlePointInitialize(unsigned int landmark_size)
     {
         tmp.pos.pose = Point(0,0);
         tmp.pos.angle = 0.0;
-        tmp.likehood = 1.0 / particlepoint_num;
+        tmp.weight = 1.0 / float(particlepoint_num);
         tmp.landmark_list.resize(landmark_size);
         for (int j = 0; j < landmark_size; j++) 
         {
@@ -238,7 +238,7 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
 {
     ROS_INFO("FindBestParticle");
     int factorweight = 1;
-    int totalweight = 0;
+    double totalweight = 0.0;
 
     int fwl = -1;
     // A_MCL (長期移動平均)
@@ -248,11 +248,11 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
     {
         x_avg += (float)particlepoint[i].pos.pose.x;
         y_avg += (float)particlepoint[i].pos.pose.y;
-        // ROS_INFO("particlepoint[%d].pos.pose = %d %d",i,particlepoint[i].pos.pose.x,particlepoint[i].pos.pose.y);
+        ROS_INFO("particlepoint[%d].pos.pose = %d %d",i,particlepoint[i].pos.pose.x,particlepoint[i].pos.pose.y);
         if(use_feature_point)
         {
             particlepoint[i].fitness_value = 0;
-            particlepoint[i].weight = 0.0;
+            // particlepoint[i].weight = 0.0;
             int real_feature_point_cnt = 0;
             for(int j = 0; j < particlepoint[i].featurepoint_scan_line.size(); j++)//36
             {
@@ -338,10 +338,10 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
         //待修改
         if(use_lineinformation)
         {
-            particlepoint[i].weight = 0.0;
             Eigen::Vector2d h;
+            double likehoodtmp = 0.0;
             // ROS_INFO("particlepoint[%d].landmark_list = %d",i,particlepoint[i].landmark_list.size());
-            // ROS_INFO("Line_observation_data_Size = %d",Line_observation_data.size());
+            ROS_INFO("Line_observation_data_Size = %d",Line_observation_data_Size);
             for(int j = 0; j < Line_observation_data_Size; j++)
             {
                 double maxscore = 0.0;
@@ -362,10 +362,10 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
                         Eigen::Matrix2d H;
                         Measurement_model(particlepoint[i], m, h, H);
                         particlepoint[i].landmark_list[m].sigma = (H.transpose()*R.inverse()*H).inverse();
-                        cout<<" 2 particlepoint[i].landmark_list[m].sigma "<< endl << particlepoint[i].landmark_list[m].sigma <<endl;
+                        // cout<<" 2 particlepoint[i].landmark_list[m].sigma "<< endl << particlepoint[i].landmark_list[m].sigma <<endl;
 
                         particlepoint[i].landmark_list[m].obersvated = true;
-                        particlepoint[i].weight = particlepoint[i].weight ;
+                        maxscore = 1.0;
                     }
                     else{
                         //get the Jacobian with respect to the landmark position
@@ -380,52 +380,55 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
                         //calculat the error between the z and expected Z
                         Eigen::Vector2d z_actual;
                         // z_actual << 0, 0;
-                        z_actual << (*(Line_observation_data + j)).distance, (*(Line_observation_data + j)).Line_theta;
-
+                        z_actual << (*(Line_observation_data + j)).distance, normalize_angle_RAD((*(Line_observation_data + j)).Line_theta);
+                        Eigen::Matrix2d I = Eigen::Matrix2d::Identity();
                         Eigen::Vector2d z_diff = z_actual - expect_Z;
-                        z_diff(1) = normalize_angle(z_diff(1));
-                        particlepoint[i].landmark_list[m].sigma = particlepoint[i].landmark_list[m].sigma - K * G * sig;
+                        z_diff(1) = normalize_angle_RAD(z_diff(1));
+                        particlepoint[i].landmark_list[m].sigma = (I - K * G)*particlepoint[i].landmark_list[m].sigma;
                         // cout<<" 3 particlepoint[i].landmark_list[m].sigma "<< endl << particlepoint[i].landmark_list[m].sigma <<endl;
                         // cout<<" G "<< endl << G <<endl;
-                        cout<<" sig "<< endl << sig <<endl;
+                        // cout<<" sig "<< endl << sig <<endl;
                         // // cout<<" K " << endl <<  K <<endl;    
                         // cout<<" Z " << endl <<  Z <<endl;
-                        cout<<" expect_Z "<< endl << expect_Z <<endl;
-                        cout<<" z_actual "<< endl << z_actual <<endl;
-                        cout<<" z_diff "<< endl << z_diff <<endl;
+                        // cout<<" expect_Z "<< endl << expect_Z <<endl;
+                        // cout<<" z_actual "<< endl << z_actual <<endl;
+                        // cout<<" z_diff "<< endl << z_diff <<endl;
                         // // cout<<" z_diff.transpose() "<< endl << z_diff.transpose() <<endl;
                         // // cout<<" Z.inverse() "<< endl << Z.inverse() <<endl;
                         // // cout<<" Z.inverse()*z_diff "<< endl << Z.inverse()*z_diff <<endl;
-                        // cout<<" sqrt(2 * PI * Z.determinant()) "<< endl << sqrt(2 * PI * Z.determinant()) <<endl;
-                        cout<<" -0.5*z_diff.transpose()*Z.inverse()*z_diff "<< endl << -0.5*z_diff.transpose()*Z.inverse()*z_diff <<endl;
-                        cout<<" exp(-0.5*z_diff.transpose()*Z.inverse()*z_diff) "<< endl << exp(-0.5*z_diff.transpose()*Z.inverse()*z_diff) <<endl;
-                        double p = exp(-0.5*z_diff.transpose()*Z.inverse()*z_diff)/sqrt(2 * PI * Z.determinant());
-                        ROS_INFO(" p = %f",p);
+                        // cout<<" sqrt(2 * M_PI * Z.determinant()) "<< endl << sqrt(2 * M_PI * Z.determinant()) <<endl;
+                        // cout<<" -0.5*z_diff.transpose()*Z.inverse()*z_diff "<< endl << -0.5*z_diff.transpose()*Z.inverse()*z_diff <<endl;
+                        // cout<<" exp(-0.5*z_diff.transpose()*Z.inverse()*z_diff) "<< endl << exp(-0.5*z_diff.transpose()*Z.inverse()*z_diff) <<endl;
+                        double p = exp(-0.5*z_diff.transpose()*Z.inverse()*z_diff)/sqrt(2 * M_PI * Z.determinant());
+                        // ROS_INFO(" p = %f",p);
                         if(m == 0)
                         {
                             maxscore = p;
                         }
-                        if(maxscore < p)
+                        else if(maxscore < p)
                         {
                             maxscore = p;
-                        }
-                        particlepoint[i].weight = particlepoint[i].weight * maxscore;
-
-                    }                    
+                        }             
+                    }                                         
                 }
-                factorweight *= exp(fwl)/(sqrt(2*M_PI))*SigmaIMU;
-                particlepoint[i].wfactors = max(min(log(factorweight/particlepoint[i].weight),2.),0.);
+                // ROS_INFO(" maxscore = %f",maxscore);
+                likehoodtmp += maxscore;
                 // ROS_INFO("particlepoint[%d].wfactors = %f",i,particlepoint[i].wfactors);
             }
             // ROS_INFO("particlepoint[%d].likehood = %f",i,particlepoint[i].likehood);                                                                               
             // // weight_avg = weight_avg + particlepoint[i].weight;
+            ROS_INFO("particlepoint[%d].weight = %f",i,particlepoint[i].weight);
+            particlepoint[i].weight = particlepoint[i].weight * likehoodtmp;
+            ROS_INFO("particlepoint[%d].weight = %f",i,particlepoint[i].weight);  
+            factorweight *= exp(fwl)/(sqrt(2*M_PI))*SigmaIMU;
+            particlepoint[i].wfactors = max(min(log(factorweight/particlepoint[i].weight),2.),0.);
         }
-        ROS_INFO("particlepoint[%d].weight = %f",i,particlepoint[i].weight);
+        ROS_INFO("----particlepoint[%d].weight = %f----",i,particlepoint[i].weight);
         totalweight += particlepoint[i].weight;
     }
     if(use_feature_point && use_lineinformation)
     {
-        totalweights = totalweight/2;
+        totalweights = totalweight/2.0;
     }else{
         totalweights = totalweight;
     }
@@ -1126,6 +1129,7 @@ void ParticleFilter::resample()
             current_particle.pos.pose.y = y_random_distribution(y_generator);
             current_particle.pos.angle = normalize_angle(Robot_Position.pos.angle + rand()%rand_angle - rand_angle_init);
             current_particle.landmark_list.resize(field_list.size());
+            current_particle.weight = 1.0/float(particlepoint_num);
             for(int j = 0; j< field_list.size(); j++)
             {
                 current_particle.landmark_list[j].obersvated = false;
@@ -1143,6 +1147,7 @@ void ParticleFilter::resample()
             current_particle.pos.pose.x = particlepoint[best_particle_num].pos.pose.x;
             current_particle.pos.pose.y = particlepoint[best_particle_num].pos.pose.y;
             current_particle.landmark_list = particlepoint[best_particle_num].landmark_list;
+            current_particle.weight = 1.0/float(particlepoint_num);
             // for(int j = 0; j< field_list.size(); j++)
             // {
             //     current_particle.landmark_list[j].obersvated = particlepoint[best_particle_num].landmark_list[j].obersvated;

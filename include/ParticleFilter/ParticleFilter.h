@@ -26,7 +26,7 @@ class ParticleFilter : public FastSlam
         
         //////////////////WMCL/////////////////
         float total_weight;
-        int totalweights;
+        double totalweights;
         float rotation;
         int posx;
         int posy;
