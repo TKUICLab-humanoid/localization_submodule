@@ -387,20 +387,20 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
                         Eigen::Vector2d z_diff = z_actual - expect_Z;
                         z_diff(1) = normalize_angle(z_diff(1));
                         particlepoint[i].landmark_list[m].sigma = particlepoint[i].landmark_list[m].sigma - K * G * sig;
-                        cout<<" 3 particlepoint[i].landmark_list[m].sigma "<< endl << particlepoint[i].landmark_list[m].sigma <<endl;
-                        cout<<" G "<< endl << G <<endl;
-                        cout<<" sig "<< endl << sig <<endl;
-                        // cout<<" K " << endl <<  K <<endl;    
-                        cout<<" Z " << endl <<  Z <<endl;
-                        cout<<" expect_Z "<< endl << expect_Z <<endl;
-                        cout<<" z_actual "<< endl << z_actual <<endl;
-                        cout<<" z_diff "<< endl << z_diff <<endl;
-                        // cout<<" z_diff.transpose() "<< endl << z_diff.transpose() <<endl;
-                        // cout<<" Z.inverse() "<< endl << Z.inverse() <<endl;
-                        // cout<<" Z.inverse()*z_diff "<< endl << Z.inverse()*z_diff <<endl;
-                        cout<<" sqrt(2 * PI * Z.determinant()) "<< endl << sqrt(2 * PI * Z.determinant()) <<endl;
-                        cout<<" -0.5*z_diff.transpose()*Z.inverse()*z_diff "<< endl << -0.5*z_diff.transpose()*Z.inverse()*z_diff <<endl;
-                        cout<<" exp(-0.5*z_diff.transpose()*Z.inverse()*z_diff) "<< endl << exp(-0.5*z_diff.transpose()*Z.inverse()*z_diff) <<endl;
+                        // cout<<" 3 particlepoint[i].landmark_list[m].sigma "<< endl << particlepoint[i].landmark_list[m].sigma <<endl;
+                        // cout<<" G "<< endl << G <<endl;
+                        // cout<<" sig "<< endl << sig <<endl;
+                        // // cout<<" K " << endl <<  K <<endl;    
+                        // cout<<" Z " << endl <<  Z <<endl;
+                        // cout<<" expect_Z "<< endl << expect_Z <<endl;
+                        // cout<<" z_actual "<< endl << z_actual <<endl;
+                        // cout<<" z_diff "<< endl << z_diff <<endl;
+                        // // cout<<" z_diff.transpose() "<< endl << z_diff.transpose() <<endl;
+                        // // cout<<" Z.inverse() "<< endl << Z.inverse() <<endl;
+                        // // cout<<" Z.inverse()*z_diff "<< endl << Z.inverse()*z_diff <<endl;
+                        // cout<<" sqrt(2 * PI * Z.determinant()) "<< endl << sqrt(2 * PI * Z.determinant()) <<endl;
+                        // cout<<" -0.5*z_diff.transpose()*Z.inverse()*z_diff "<< endl << -0.5*z_diff.transpose()*Z.inverse()*z_diff <<endl;
+                        // cout<<" exp(-0.5*z_diff.transpose()*Z.inverse()*z_diff) "<< endl << exp(-0.5*z_diff.transpose()*Z.inverse()*z_diff) <<endl;
                         double p = exp(-0.5*z_diff.transpose()*Z.inverse()*z_diff)/sqrt(2 * PI * Z.determinant());
                         ROS_INFO(" p = %f",p);
                         if(m == 0)
@@ -720,7 +720,10 @@ void ParticleFilter::FindLandMarkInVirtualField(ParticlePoint *particlepoint)
     // vector<LineINF> tmp1;
     // tmp1.clear();
     // ROS_INFO("detect_line_list.size() = %d , ID = %d" ,detect_line_list.size(),tmp_ID.size());
-
+    for(int n = 0; n < field_list.size();n ++)
+    {
+        particlepoint->landmark_list[n].update = false;
+    }
     for(int m = 0; m < detect_line_list.size(); m++)
     {
         LineINF landmark_tmp;
@@ -732,16 +735,23 @@ void ParticleFilter::FindLandMarkInVirtualField(ParticlePoint *particlepoint)
         if(particlepoint->landmark_list[ID].obersvated == true)
         {
             particlepoint->landmark_list[ID].obersvated = true;
-            particlepoint->landmark_list[ID].Nearest_point = landmark_tmp.Nearest_point;
-            particlepoint->landmark_list[ID].start_point = landmark_tmp.start_point;
-            particlepoint->landmark_list[ID].end_point = landmark_tmp.end_point;
         }else{
             particlepoint->landmark_list[ID].obersvated = false;
-            particlepoint->landmark_list[ID].Nearest_point = landmark_tmp.Nearest_point;
-            particlepoint->landmark_list[ID].start_point = landmark_tmp.start_point;
-            particlepoint->landmark_list[ID].end_point = landmark_tmp.end_point;
+        }  
+        particlepoint->landmark_list[ID].Nearest_point = landmark_tmp.Nearest_point;
+        particlepoint->landmark_list[ID].start_point = landmark_tmp.start_point;
+        particlepoint->landmark_list[ID].end_point = landmark_tmp.end_point;
+        particlepoint->landmark_list[ID].update = true; 
+    }
+    for(int n = 0; n < field_list.size();n ++)
+    {
+        if(particlepoint->landmark_list[n].update == false)
+        {
+            particlepoint->landmark_list[n].Nearest_point = Point(0,0);
+            particlepoint->landmark_list[n].start_point = Point(0,0);
+            particlepoint->landmark_list[n].end_point = Point(0,0);
+            particlepoint->landmark_list[n].sigma << 0,0,0,0;
         }
-                
     }
     // particlepoint->landmark_list = tmp1;
     // ROS_INFO("particlepoint->landmark_list = %d",particlepoint->landmark_list.size());

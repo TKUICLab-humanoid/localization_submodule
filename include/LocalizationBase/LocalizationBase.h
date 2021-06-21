@@ -109,6 +109,8 @@ struct LineINF
     Eigen::Vector2d mu;
     bool obersvated;
     Eigen::Matrix2d sigma;
+    bool update;
+
 };
 
 struct all_linedata
