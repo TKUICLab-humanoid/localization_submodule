@@ -379,28 +379,26 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
                         Eigen::Matrix2d K = sig * G.transpose() * Z.inverse();
                         //calculat the error between the z and expected Z
                         Eigen::Vector2d z_actual;
-                        Point NearestPoint = (*(Line_observation_data + j)).Nearest_point;
-                        float angle = normalize_angle(atan2(NearestPoint.y, NearestPoint.x)*RAD2DEG);
-                        // z_actual << (*(Line_observation_data + j)).distance, angle;
-                        z_actual << (*(Line_observation_data + j)).distance, angle;
+                        // z_actual << 0, 0;
+                        z_actual << (*(Line_observation_data + j)).distance, (*(Line_observation_data + j)).Line_theta;
 
                         Eigen::Vector2d z_diff = z_actual - expect_Z;
                         z_diff(1) = normalize_angle(z_diff(1));
                         particlepoint[i].landmark_list[m].sigma = particlepoint[i].landmark_list[m].sigma - K * G * sig;
                         // cout<<" 3 particlepoint[i].landmark_list[m].sigma "<< endl << particlepoint[i].landmark_list[m].sigma <<endl;
                         // cout<<" G "<< endl << G <<endl;
-                        // cout<<" sig "<< endl << sig <<endl;
+                        cout<<" sig "<< endl << sig <<endl;
                         // // cout<<" K " << endl <<  K <<endl;    
                         // cout<<" Z " << endl <<  Z <<endl;
-                        // cout<<" expect_Z "<< endl << expect_Z <<endl;
-                        // cout<<" z_actual "<< endl << z_actual <<endl;
-                        // cout<<" z_diff "<< endl << z_diff <<endl;
+                        cout<<" expect_Z "<< endl << expect_Z <<endl;
+                        cout<<" z_actual "<< endl << z_actual <<endl;
+                        cout<<" z_diff "<< endl << z_diff <<endl;
                         // // cout<<" z_diff.transpose() "<< endl << z_diff.transpose() <<endl;
                         // // cout<<" Z.inverse() "<< endl << Z.inverse() <<endl;
                         // // cout<<" Z.inverse()*z_diff "<< endl << Z.inverse()*z_diff <<endl;
                         // cout<<" sqrt(2 * PI * Z.determinant()) "<< endl << sqrt(2 * PI * Z.determinant()) <<endl;
-                        // cout<<" -0.5*z_diff.transpose()*Z.inverse()*z_diff "<< endl << -0.5*z_diff.transpose()*Z.inverse()*z_diff <<endl;
-                        // cout<<" exp(-0.5*z_diff.transpose()*Z.inverse()*z_diff) "<< endl << exp(-0.5*z_diff.transpose()*Z.inverse()*z_diff) <<endl;
+                        cout<<" -0.5*z_diff.transpose()*Z.inverse()*z_diff "<< endl << -0.5*z_diff.transpose()*Z.inverse()*z_diff <<endl;
+                        cout<<" exp(-0.5*z_diff.transpose()*Z.inverse()*z_diff) "<< endl << exp(-0.5*z_diff.transpose()*Z.inverse()*z_diff) <<endl;
                         double p = exp(-0.5*z_diff.transpose()*Z.inverse()*z_diff)/sqrt(2 * PI * Z.determinant());
                         ROS_INFO(" p = %f",p);
                         if(m == 0)
@@ -741,6 +739,7 @@ void ParticleFilter::FindLandMarkInVirtualField(ParticlePoint *particlepoint)
         particlepoint->landmark_list[ID].Nearest_point = landmark_tmp.Nearest_point;
         particlepoint->landmark_list[ID].start_point = landmark_tmp.start_point;
         particlepoint->landmark_list[ID].end_point = landmark_tmp.end_point;
+        particlepoint->landmark_list[ID].Line_theta = landmark_tmp.Line_theta;
         particlepoint->landmark_list[ID].update = true; 
     }
     for(int n = 0; n < field_list.size();n ++)
@@ -750,6 +749,7 @@ void ParticleFilter::FindLandMarkInVirtualField(ParticlePoint *particlepoint)
             particlepoint->landmark_list[n].Nearest_point = Point(0,0);
             particlepoint->landmark_list[n].start_point = Point(0,0);
             particlepoint->landmark_list[n].end_point = Point(0,0);
+            particlepoint->landmark_list[n].Line_theta = 0.0;
             particlepoint->landmark_list[n].sigma << 0,0,0,0;
         }
     }
@@ -1130,6 +1130,7 @@ void ParticleFilter::resample()
             {
                 current_particle.landmark_list[j].obersvated = false;
                 current_particle.landmark_list[j].sigma << 0,0,0,0;
+                current_particle.landmark_list[j].Line_theta = 0.0;
                 current_particle.landmark_list[j].start_point = Point(0,0);
                 current_particle.landmark_list[j].end_point = Point(0,0);
                 current_particle.landmark_list[j].Nearest_point = Point(0,0);

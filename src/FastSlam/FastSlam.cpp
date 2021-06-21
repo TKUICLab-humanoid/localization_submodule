@@ -19,12 +19,13 @@ void FastSlam::Measurement_model(const ParticlePoint& p, int LandMarkID, Eigen::
     float delta_x = landmark_point.x - particle_point.x;
     float delta_y = landmark_point.y - particle_point.y;
     double expect_distance   = sqrt(delta_x * delta_x + delta_y * delta_y);
-    double expect_angle = normalize_angle(atan2(delta_y, delta_x)*RAD2DEG - p.pos.angle);
+    double expect_angle = normalize_angle(p.landmark_list[LandMarkID].Line_theta - p.pos.angle);
     // ROS_INFO("delta_x = %f",delta_x);
     // ROS_INFO("delta_y = %f",delta_y);
     // ROS_INFO("expect_distance = %f",expect_distance);
     // ROS_INFO("expect_angle = %f",expect_angle);
     h << expect_distance, expect_angle;
+    // h << 0, 0;
 
     //compute the Jacobian H of the measurement function h wrt to the landmark location
     H = Eigen::Matrix2d::Zero(2, 2);
