@@ -6,9 +6,9 @@ ParticleFilter::ParticleFilter()
     particlepoint_num = PARTICLNUM;
     excellent_particle_num = EXCELLENTPARTICLNUM;
 
-    Robot_Position.pos.pose.x = -1; //830  700
-    Robot_Position.pos.pose.y = -1; //640  370
-    Robot_Position.pos.angle = -1.0;
+    Robot_Position.pos.pose.x = 550; //830  700
+    Robot_Position.pos.pose.y = 370; //640  370
+    Robot_Position.pos.angle = 0.0;
 
     continuous_x = 0;
     continuous_y = 0;
@@ -47,7 +47,7 @@ ParticleFilter::ParticleFilter()
 
     localization_flag = true;
     find_best_flag = true;
-    use_feature_point = true;
+    use_feature_point = false;
     use_lineinformation = true;
     SigmaIMU = 10;
 
@@ -66,12 +66,18 @@ void ParticleFilter::ParticlePointInitialize(unsigned int landmark_size)
     localization_flag = true;
     ParticlePoint tmp;
     particlepoint.clear();
+    std::random_device rd, x_rd, y_rd;                                          //產生亂數種子                    //Produce the random seed
+    std::mt19937 generator(rd());                                               //使用梅森旋轉演算法產生亂數        //Use Mersenne Twister to produce the random
+    std::mt19937 x_generator(x_rd());
+    std::mt19937 y_generator(y_rd());
+    std::uniform_real_distribution<float> add_random_distribution(0.0, 1.0);    //設定機率分佈範圍（連續型均勻分佈） //Set the random distribution range(continuous)
+    std::uniform_real_distribution<float> x_random_distribution(550, MAP_LENGTH - 105), y_random_distribution(10, MAP_WIDTH - 10);
     // noise << 0.005, 0.01, 0.005;
     for (int i = 0; i < particlepoint_num; i++)
     {
-        tmp.pos.pose = Point(0,0);
+        tmp.pos.pose = Point(x_random_distribution(x_generator),y_random_distribution(y_generator));
         tmp.pos.angle = 0.0;
-        tmp.weight = 1.0 / float(particlepoint_num);
+        tmp.weight = 0.0;
         tmp.landmark_list.resize(landmark_size);
         for (int j = 0; j < landmark_size; j++) 
         {
@@ -80,6 +86,8 @@ void ParticleFilter::ParticlePointInitialize(unsigned int landmark_size)
             tmp.landmark_list[j].obersvated = false;
         }
         particlepoint.push_back(tmp);
+        // ROS_INFO("particlepoint pos= %d %d",tmp.pos.pose.x,tmp.pos.pose.y);
+
     }
     // ROS_INFO("particlepoint = %d",particlepoint.size());
 }
@@ -239,7 +247,7 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
     ROS_INFO("FindBestParticle");
     int factorweight = 1;
     double totalweight = 0.0;
-
+    int Lineweight = 0.0;
     int fwl = -1;
     // A_MCL (長期移動平均)
     float x_avg = 0.0;
@@ -252,7 +260,7 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
         if(use_feature_point)
         {
             particlepoint[i].fitness_value = 0;
-            // particlepoint[i].weight = 0.0;
+            particlepoint[i].weight = 0.0;
             int real_feature_point_cnt = 0;
             for(int j = 0; j < particlepoint[i].featurepoint_scan_line.size(); j++)//36
             {
@@ -332,12 +340,13 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
                 
             }
             particlepoint[i].weight = (float)particlepoint[i].fitness_value / ((float)(real_feature_point_cnt * MAP_MAX_LENGTH));
-            factorweight *= exp(fwl)/(sqrt(2*M_PI))*SigmaIMU;
-            particlepoint[i].wfactors = max(min(log(factorweight/particlepoint[i].weight),2.),0.);
+            // factorweight *= exp(fwl)/(sqrt(2*M_PI))*SigmaIMU;
+            // particlepoint[i].wfactors = max(min(log(factorweight/particlepoint[i].weight),2.),0.);
         }
         //待修改
         if(use_lineinformation)
         {
+            Lineweight = 0.001;
             Eigen::Vector2d h;
             double likehoodtmp = 0.0;
             // ROS_INFO("particlepoint[%d].landmark_list = %d",i,particlepoint[i].landmark_list.size());
@@ -365,7 +374,7 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
                         // cout<<" 2 particlepoint[i].landmark_list[m].sigma "<< endl << particlepoint[i].landmark_list[m].sigma <<endl;
 
                         particlepoint[i].landmark_list[m].obersvated = true;
-                        maxscore = 1.0;
+                        maxscore = 0.001;
                     }
                     else{
                         //get the Jacobian with respect to the landmark position
@@ -411,14 +420,14 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
                         }             
                     }                                         
                 }
-                // ROS_INFO(" maxscore = %f",maxscore);
+                ROS_INFO(" maxscore = %f",maxscore);
                 likehoodtmp += maxscore;
                 // ROS_INFO("particlepoint[%d].wfactors = %f",i,particlepoint[i].wfactors);
             }
-            // ROS_INFO("particlepoint[%d].likehood = %f",i,particlepoint[i].likehood);                                                                               
-            // // weight_avg = weight_avg + particlepoint[i].weight;
             ROS_INFO("particlepoint[%d].weight = %f",i,particlepoint[i].weight);
-            particlepoint[i].weight = particlepoint[i].weight * likehoodtmp;
+            particlepoint[i].weight += (likehoodtmp/(float)Line_observation_data_Size);
+            // // weight_avg = weight_avg + particlepoint[i].weight;
+            // particlepoint[i].weight = particlepoint[i].weight * likehoodtmp;
             ROS_INFO("particlepoint[%d].weight = %f",i,particlepoint[i].weight);  
             factorweight *= exp(fwl)/(sqrt(2*M_PI))*SigmaIMU;
             particlepoint[i].wfactors = max(min(log(factorweight/particlepoint[i].weight),2.),0.);
@@ -426,12 +435,12 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
         ROS_INFO("----particlepoint[%d].weight = %f----",i,particlepoint[i].weight);
         totalweight += particlepoint[i].weight;
     }
-    if(use_feature_point && use_lineinformation)
-    {
-        totalweights = totalweight/2.0;
-    }else{
-        totalweights = totalweight;
-    }
+    // if(use_feature_point && use_lineinformation)
+    // {
+    //     totalweights = totalweight/2.0;
+    // }else{
+    totalweights = totalweight;
+    // }
     x_avg = x_avg / (float)particlepoint_num;
     y_avg = y_avg / (float)particlepoint_num;
     // weight_avg = weight_avg / (float)particlepoint_num;
@@ -1129,7 +1138,7 @@ void ParticleFilter::resample()
             current_particle.pos.pose.y = y_random_distribution(y_generator);
             current_particle.pos.angle = normalize_angle(Robot_Position.pos.angle + rand()%rand_angle - rand_angle_init);
             current_particle.landmark_list.resize(field_list.size());
-            current_particle.weight = 1.0/float(particlepoint_num);
+            current_particle.weight = 0.0;
             for(int j = 0; j< field_list.size(); j++)
             {
                 current_particle.landmark_list[j].obersvated = false;
@@ -1147,7 +1156,7 @@ void ParticleFilter::resample()
             current_particle.pos.pose.x = particlepoint[best_particle_num].pos.pose.x;
             current_particle.pos.pose.y = particlepoint[best_particle_num].pos.pose.y;
             current_particle.landmark_list = particlepoint[best_particle_num].landmark_list;
-            current_particle.weight = 1.0/float(particlepoint_num);
+            current_particle.weight = 0.0;
             // for(int j = 0; j< field_list.size(); j++)
             // {
             //     current_particle.landmark_list[j].obersvated = particlepoint[best_particle_num].landmark_list[j].obersvated;

@@ -37,7 +37,11 @@ Localization_main::Localization_main(ros::NodeHandle &nh)
     is_start = false;
     change_pos_flag = false;
     loop_cnt = 0;
-
+    Velocity_value.straight = 0.0;
+    Velocity_value.drift = 0.0;
+    Velocity_value.rotational = 0.0;
+    Velocity_value.moving = 1;
+    Velocity_value.dt = 0.0;
     loop_cnt_vector.clear();
 }
 Localization_main::~Localization_main()
