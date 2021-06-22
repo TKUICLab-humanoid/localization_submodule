@@ -183,8 +183,10 @@ class LocalizationBase
         double dis2(Point a, Point b);                //點a、b距離的平方
         double MinDistance(Vec4i FOVbottom, Point A);
         Point MinIntersectPoint(Vec4i line, Point A, double mindistance);
-        float normalize_angle(float phi) ;
-        float normalize_angle_RAD(float phi) ;
+        float normalize_angle(float phi);
+        float normalize_angle_RAD(float phi);
+        float normalize_angle_RAD_(float phi);
+
         LineINF LineInformation(Point A, Point B, Point Bottom_left, Point Bottom_right);
         bool Line_observation_data_flag = true;
         int Line_observation_data_Size ;

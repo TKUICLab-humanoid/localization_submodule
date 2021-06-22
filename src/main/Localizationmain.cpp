@@ -80,7 +80,7 @@ void Localization_main::GetObservationDataFunction(const tku_msgs::ObservationDa
     
     Point end_point;
     Point start_point;
-    Point center_point;
+    // Point center_point;
     double Line_length;
     double Line_theta; 
     for(int i = 0; i < msg.landmark.size(); i++)
@@ -90,8 +90,8 @@ void Localization_main::GetObservationDataFunction(const tku_msgs::ObservationDa
         lineinf.end_point = Point((int)msg.landmark[i].end_point.x,(int)msg.landmark[i].end_point.y);
         // lineinf.center_point = Point((int)msg.landmark[i].center_point.x,(int)msg.landmark[i].center_point.y);
         // lineinf.Line_length = msg.landmark[i].Line_length;
-        lineinf.Line_theta = msg.landmark[i].Line_theta * DEG2RAD;
-        lineinf.distance = msg.landmark[i].relative_distance /100.0;
+        lineinf.Line_theta = msg.landmark[i].Line_theta ;
+        lineinf.distance = msg.landmark[i].relative_distance ;
         lineinf.Nearest_point = Point((int)msg.landmark[i].Nearest_point.x,(int)msg.landmark[i].Nearest_point.y);
         Line_observation_data.push_back(lineinf);
     }

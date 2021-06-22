@@ -34,18 +34,18 @@ float LocalizationBase::normalize_angle(float phi)
 {
   //Normalize phi to be between -pi and pi
     while(phi > 180.0) {
-        phi = phi - 2 * 180.0;
+        phi = phi - 2.0 * 180.0;
     }
 
     while(phi < -180.0) {
-        phi = phi + 2 * 180.0;
+        phi = phi + 2.0 * 180.0;
     }
     return phi;
 }
 
 float LocalizationBase::normalize_angle_RAD(float phi) 
 {
-  //Normalize phi to be between -pi and pi
+    //Normalize phi to be between -pi and pi
     while(phi > M_PI) {
         phi = phi - 2 * M_PI;
     }
@@ -54,6 +54,13 @@ float LocalizationBase::normalize_angle_RAD(float phi)
         phi = phi + 2 * M_PI;
     }
     return phi;
+}
+
+float LocalizationBase::normalize_angle_RAD_(float phi) 
+{
+    //Normalize phi to be between 0 and pi (-pi/2   0   pi/2)
+
+    return M_PI_2 - phi;
 }
 
 int LocalizationBase::Frame_Area(int coordinate, int range)
@@ -69,9 +76,8 @@ double LocalizationBase::Slope(Vec4i line)
 {
     if((line[2]-line[0]) == 0) return 90;
     else {
-        double s = atan2((double(line[3])-double(line[1])),(double(line[2])-double(line[0])))*RAD2DEG;
-        if(s > 90) return -180+s;
-        else if(s < -90) return 180+s;
+        double s = normalize_angle_RAD(atan2((double(line[3])-double(line[1])),(double(line[2])-double(line[0]))))*RAD2DEG;
+        if(s < 0) return 180+s;
         else return s;
     }
 }
@@ -138,20 +144,21 @@ Point LocalizationBase::IntersectPoint(Vec4i X, Vec4i Y)
 LineINF LocalizationBase::LineInformation(Point A, Point B, Point Bottom_left, Point Bottom_right)
 {
     LineINF lineinf;
-    Point v1 = Point(B.x-A.x,B.y-A.y);
-    Point v2 = Point(Bottom_right.x-Bottom_left.x,Bottom_right.y-Bottom_left.y);
-    float l1 = sqrt(dis2(A,B));
-    float l2 = sqrt(dis2(Bottom_right,Bottom_left));
+    Point v1 = Point(Bottom_right.x-Bottom_left.x,Bottom_right.y-Bottom_left.y);
+    Point v2 = Point(B.x-A.x,B.y-A.y);
+    float l1 = sqrt(dis2(Bottom_right,Bottom_left));
+    float l2 = sqrt(dis2(A,B));
     Point Bottom_center = Point((Bottom_right.x+Bottom_left.x)/2,(Bottom_right.y+Bottom_left.y)/2);
-    double cross = v1.x * v2.y - v1.y * v2.x;
+    // double cross = v1.x * v2.y - v1.y * v2.x;
+    double dot = v1.x * v2.x + v1.y * v2.y;
     Vec4i tmp = {A.x,A.y,B.x,B.y};
     lineinf.start_point = Point(A.x,A.y);
     lineinf.end_point = Point(B.x,B.y);
     lineinf.center_point = Point((A.x+B.x)/2,(A.y+B.y)/2);
     lineinf.Line_length = sqrt(pow((A.x-B.x),2)+pow((A.y-B.y),2));
-    lineinf.Line_theta = asin(cross/l1/l2)*RAD2DEG;  //相對於FOVBottom的角度
+    lineinf.Line_theta = normalize_angle_RAD_(acos(dot/l1/l2));  //相對於FOVBottom的角度
     double mindis = MinDistance(tmp,Bottom_center/*Point(abs(Bottom_right.x-Bottom_left.x),abs(Bottom_right.y-Bottom_left.y))*/);
-    lineinf.distance = mindis;
+    lineinf.distance = mindis/100.0;
     lineinf.Nearest_point = MinIntersectPoint(tmp,Bottom_center,mindis);
 
     // ROS_INFO("lineinf point = %d %d %d %d ",lineinf.start_point.x,lineinf.start_point.y,lineinf.end_point.x,lineinf.end_point.y);
