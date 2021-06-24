@@ -187,15 +187,15 @@ void Localization_main::GetWalkingParameterFunction(const tku_msgs::Parameter_me
 
 void Localization_main::GetSetRobotPosFunction(const tku_msgs::SetRobotPos &msg) 
 {
-    if(msg.number == 0)
-    {
-        Robot_Position.postion.X = msg.x;
-        Robot_Position.postion.Y = msg.y;
-        Robot_Position.angle = msg.dir;
-        robot_pos_x_init = msg.x;
-        robot_pos_y_init = msg.y;
-        robot_pos_dir_init = msg.dir;
-    }
+    // if(msg.number == 0) // must change
+    // {
+    Robot_Position.postion.X = msg.x;
+    Robot_Position.postion.Y = msg.y;
+    Robot_Position.angle = msg.dir;
+    robot_pos_x_init = msg.x;
+    robot_pos_y_init = msg.y;
+    robot_pos_dir_init = msg.dir;
+    // }
 }
 
 void Localization_main::StartFunction(const std_msgs::Bool &msg)

@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(OpenCV REQUIRED)
+
 #set(TKU_LIBRARIES ${CATKIN_DEVEL_PREFIX}/lib/libtku_libs.so)
 #set(STRATEGYBASE_LIBRARIES ${CATKIN_DEVEL_PREFIX}/lib/libstrategybase.so)
 # add the resized image message
@@ -51,4 +52,7 @@ add_executable(localization
 )
 target_link_libraries(localization ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
-
+add_executable(multirobotlocalization
+    src/MultiRobotLocalization/MultiRobotLocalization.cpp
+)
+target_link_libraries(multirobotlocalization ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})

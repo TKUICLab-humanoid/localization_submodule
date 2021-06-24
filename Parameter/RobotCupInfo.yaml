@@ -1,0 +1,12 @@
+-
+  state:
+    which_robot: 'robot1'
+    robot1: 'attacker'
+    robot2: 'null'
+    robot3: 'null'
+    robot4: 'null'
+  topic:
+    robot1: '/robot1/alldata'
+    robot2: '/robot2/alldata'
+    robot3: '/robot3/alldata'
+    robot4: '/robot4/alldata'
