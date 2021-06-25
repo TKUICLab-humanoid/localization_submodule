@@ -124,7 +124,7 @@ class Localization_main : public Drawing
         movement_data Velocity_value;
         vector<scan_line> feature_point_observation_data;
         vector<LineINF> Line_observation_data;
-        IMU_data imu_data;
+        
         Mat FOV_Field;
 };
 

@@ -20,7 +20,7 @@
 #define DEG2RAD         M_PI/180
 #define RAD2DEG         180/M_PI
 #define PI              3.14159265
-#define PARTICLNUM      1000
+#define PARTICLNUM      800
 #define EXCELLENTPARTICLNUM      20
 
 using namespace std;
@@ -127,13 +127,16 @@ struct ParticlePoint
 {
     // FOV
     // 0:Top_Left 1:Top_right 2:Bottom_Right 3:Bottom_Left
-    Point FOV_corrdinate[4]; 
+    Point FOV_corrdinate[6]; 
     float FOV_dir;
     Point FOV_Bottom_Right;
     Point FOV_Bottom_Left;
     Point FOV_Top_Right;
     Point FOV_Top_Left;
     
+    Point FOV_tmp;
+    Point FOV_tmp2;
+
     // position
     Pointdata pos;
     // Point postion;
@@ -186,10 +189,12 @@ class LocalizationBase
         float normalize_angle(float phi);
         float normalize_angle_RAD(float phi);
         float normalize_angle_RAD_(float phi);
+        float AngleDiff(float phi) ;
 
         LineINF LineInformation(Point A, Point B, Point Bottom_left, Point Bottom_right);
         bool Line_observation_data_flag = true;
         int Line_observation_data_Size ;
         double gauss(double sigma, double mu = 0);
-
+        IMU_data imu_data;
+        Point Frame_Area_2(Point& prepoint, Point& point,Point range);
 };

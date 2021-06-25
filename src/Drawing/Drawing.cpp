@@ -274,6 +274,14 @@ Mat Drawing::DrawFOV()
     {
         FOV_Point_tmp.push_back(Point(particlepoint[i].FOV_Bottom_Right.x,particlepoint[i].FOV_Bottom_Right.y));
         FOV_Point_tmp.push_back(Point(particlepoint[i].FOV_Top_Right.x,particlepoint[i].FOV_Top_Right.y));
+        if(particlepoint[i].FOV_tmp.x != -1 && particlepoint[i].FOV_tmp.y != -1)
+        {
+            FOV_Point_tmp.push_back(Point(particlepoint[i].FOV_tmp.x,particlepoint[i].FOV_tmp.y));
+        }
+        if(particlepoint[i].FOV_tmp2.x != -1 && particlepoint[i].FOV_tmp2.y != -1)
+        {
+            FOV_Point_tmp.push_back(Point(particlepoint[i].FOV_tmp2.x,particlepoint[i].FOV_tmp2.y));
+        }
         FOV_Point_tmp.push_back(Point(particlepoint[i].FOV_Top_Left.x,particlepoint[i].FOV_Top_Left.y));
         FOV_Point_tmp.push_back(Point(particlepoint[i].FOV_Bottom_Left.x,particlepoint[i].FOV_Bottom_Left.y));
 
@@ -322,6 +330,14 @@ Mat Drawing::DrawRobotPos()
 
     Robot_FOV_tmp.push_back(Point(Robot_Position.FOV_Bottom_Right.x,Robot_Position.FOV_Bottom_Right.y));
     Robot_FOV_tmp.push_back(Point(Robot_Position.FOV_Top_Right.x,Robot_Position.FOV_Top_Right.y));
+    if(Robot_Position.FOV_tmp.x != -1 && Robot_Position.FOV_tmp.y != -1)
+    {
+        Robot_FOV_tmp.push_back(Point(Robot_Position.FOV_tmp.x,Robot_Position.FOV_tmp.y));
+    }
+    if(Robot_Position.FOV_tmp2.x != -1 && Robot_Position.FOV_tmp2.y != -1)
+    {
+        Robot_FOV_tmp.push_back(Point(Robot_Position.FOV_tmp2.x,Robot_Position.FOV_tmp2.y));
+    }
     Robot_FOV_tmp.push_back(Point(Robot_Position.FOV_Top_Left.x,Robot_Position.FOV_Top_Left.y));
     Robot_FOV_tmp.push_back(Point(Robot_Position.FOV_Bottom_Left.x,Robot_Position.FOV_Bottom_Left.y));
 

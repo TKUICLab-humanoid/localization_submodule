@@ -304,7 +304,7 @@ int main(int argc, char** argv)
     //set the robot position
     robot_pos_x_init = 750; 
     robot_pos_y_init = 213;
-    robot_pos_dir_init = 0.0;
+    robot_pos_dir_init = 90.0;
 
     bool reset_flag = false;
 
@@ -369,7 +369,6 @@ void Localization_main::strategy_init()
         Robot_Position.pos.pose.x = robot_pos_x_init;
         Robot_Position.pos.pose.y = robot_pos_y_init;
         Robot_Position.pos.angle = robot_pos_dir_init;
-
     }
      
     Soccer_Field = DrawField();

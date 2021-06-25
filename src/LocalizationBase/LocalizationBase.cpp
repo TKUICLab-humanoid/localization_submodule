@@ -56,6 +56,19 @@ float LocalizationBase::normalize_angle_RAD(float phi)
     return phi;
 }
 
+float LocalizationBase::AngleDiff(float phi) 
+{
+    if(abs(phi) > 0.30946)
+    {
+        phi = M_PI - abs(phi);
+    }
+    else{
+        phi = abs(phi);
+    }
+    
+    return phi;
+}
+
 float LocalizationBase::normalize_angle_RAD_(float phi) 
 {
     //Normalize phi to be between 0 and pi (-pi/2   0   pi/2)
@@ -70,6 +83,77 @@ int LocalizationBase::Frame_Area(int coordinate, int range)
     else if (coordinate >= range)
         coordinate = range - 1;
     return coordinate;
+}
+
+Point LocalizationBase::Frame_Area_2(Point& prepoint, Point& point,Point range)
+{
+    float para_a = (float)((float)(prepoint.y-point.y)/(float)(prepoint.x-point.x));
+    float para_b = point.y - (para_a * point.x);
+    int x = 0;
+    int y = 0;
+    // ROS_INFO("point.x = %d point.y =%d", point.x,point.y);
+    // ROS_INFO("para_a = %f para_b =%f", para_a,para_b);
+    
+    if(point.x >range.x-1 && point.y > range.y-1)
+    {
+        x = range.x -1;
+        y = round(para_a * (float)x + para_b);
+        if(y > range.y - 1 )
+        {
+            y = range.y - 1;
+            x = round(((float)y - para_b)/para_a);
+        }
+    }else if(point.x >= 0 && point.x < range.x-1 && point.y > range.y-1)
+    {
+        y = range.y - 1;
+        x = round(((float)y - para_b)/para_a);
+    }else if(point.y > range.y-1 && point.x < 0)
+    {
+        x = 0;
+        y = round(para_a * (float)x + para_b);
+        if(y > range.y - 1 )
+        {
+            y = range.y - 1;
+            x = round(((float)y - para_b)/para_a);
+        }
+    }else if(point.y >= 0 && point.y < range.y-1 && point.x < 0)
+    {
+        x = 0;
+        y = round(para_a * (float)x + para_b);
+    }else if(point.x < 0 && point.y < 0)
+    {
+        x = 0;
+        y = round(para_a * (float)x + para_b);
+        if(y < 0 )
+        {
+            y = 0;
+            x = round(((float)y - para_b)/para_a);
+        }
+    }else if(point.x >= 0 && point.x < range.x-1 && point.y < 0)
+    {
+        y = 0;
+        x = round(((float)y - para_b)/para_a);
+    }else if(point.y < 0 && point.x > range.x-1)
+    {
+        x = range.x-1;
+        y = round(para_a * (float)x + para_b);
+        if(y < 0 )
+        {
+            y = 0;
+            x = round(((float)y - para_b)/para_a);
+        }
+    }else if(point.y >= 0 && point.y < range.y-1 && point.x > range.x-1)
+    {
+        x = range.x-1;
+        y = round(para_a * (float)x + para_b);
+    }else{
+        x = point.x;
+        y = point.y;
+    }
+    
+    // ROS_INFO("x = %d y =%d", x,y);
+    Point pointX = Point(x,y);
+    return pointX;
 }
 
 double LocalizationBase::Slope(Vec4i line)
@@ -157,7 +241,7 @@ LineINF LocalizationBase::LineInformation(Point A, Point B, Point Bottom_left, P
     lineinf.center_point = Point((A.x+B.x)/2,(A.y+B.y)/2);
     lineinf.Line_length = sqrt(pow((A.x-B.x),2)+pow((A.y-B.y),2));
     lineinf.Line_theta = normalize_angle_RAD_(acos(dot/l1/l2));  //相對於FOVBottom的角度
-    double mindis = MinDistance(tmp,Bottom_center/*Point(abs(Bottom_right.x-Bottom_left.x),abs(Bottom_right.y-Bottom_left.y))*/);
+    double mindis = MinDistance(tmp,Bottom_center);
     lineinf.distance = mindis/100.0;
     lineinf.Nearest_point = MinIntersectPoint(tmp,Bottom_center,mindis);
 
