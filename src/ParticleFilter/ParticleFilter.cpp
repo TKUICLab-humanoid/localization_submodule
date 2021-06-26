@@ -47,8 +47,8 @@ ParticleFilter::ParticleFilter()
 
     localization_flag = true;
     find_best_flag = true;
-    use_feature_point = true;
-    use_lineinformation = false;
+    use_feature_point = false;
+    use_lineinformation = true;
     SigmaIMU = 10;
 
     AngleLUT();
@@ -350,12 +350,13 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
             Eigen::Vector2d h;
             double likehoodtmp = 0.0;
             // ROS_INFO("particlepoint[%d].landmark_list = %d",i,particlepoint[i].landmark_list.size());
-            // ROS_INFO("Line_observation_data_Size = %d",Line_observation_data_Size);
+            ROS_INFO("Line_observation_data_Size = %d",Line_observation_data_Size);
             for(int j = 0; j < Line_observation_data_Size; j++)
             {
                 double maxscore = 0.0;
+                double linemaxscore = 0.0;
                 int ID = 0;
-                // ROS_INFO("Line_observation_data [%d] = %f %f",j,(*(Line_observation_data + j)).distance,normalize_angle_RAD((*(Line_observation_data + j)).Line_theta));
+                ROS_INFO("Line_observation_data [%d] = %f %f",j,(*(Line_observation_data + j)).distance,normalize_angle_RAD((*(Line_observation_data + j)).Line_theta));
                 if((*(Line_observation_data + j)).distance == 0.0)
                 {
                     continue;
@@ -363,6 +364,7 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
                 for(int m = 0; m < particlepoint[i].landmark_list.size(); m++)//計算虛擬地圖中的地標相似性
                 {
                     double p = 0.0;
+                    linemaxscore = 0.0;
                     if(particlepoint[i].landmark_list[m].Nearest_point == Point(0,0))
                     {
                         continue;
@@ -405,6 +407,14 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
                             maxscore = p;
                             ID = m; 
                         }  
+                        float Line_length_diff = abs((*(Line_observation_data + j)).Line_length - particlepoint[i].landmark_list[m].Line_length);
+                        
+                        // if(abs(z_diff(0)) < 0.2 && abs(z_diff(1)) < 2.0 * DEG2RAD && Line_length_diff < 30.0)
+                        // {
+                        //     linemaxscore = linemaxscore + 1.5;
+                        // }else {
+                        //     linemaxscore = linemaxscore - 0.5;
+                        // }
 
                         if(m == particlepoint[i].landmark_list.size()-1)
                         {
@@ -417,6 +427,7 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
                             //calculate the Kalman gain K
                             Eigen::Matrix2d K = sig * G.transpose() * Z.inverse();
                             particlepoint[i].landmark_list[ID].sigma = (I - K * G)*particlepoint[i].landmark_list[ID].sigma;
+                            // maxscore += linemaxscore;
                         }                                       
 
                         // ROS_INFO(" expect_Z[%d] = %f %f",m,expect_Z(0),expect_Z(1)*RAD2DEG);    
@@ -432,7 +443,7 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
             particlepoint[i].weight *= (likehoodtmp/(float)Line_observation_data_Size);
             // // weight_avg = weight_avg + particlepoint[i].weight;
             // particlepoint[i].weight = particlepoint[i].weight * likehoodtmp;
-            // ROS_INFO("particlepoint[%d].weight = %f",i,particlepoint[i].weight);  
+            ROS_INFO("particlepoint[%d].weight = %f",i,particlepoint[i].weight);  
             factorweight *= exp(fwl)/(sqrt(2*M_PI))*SigmaIMU;
             particlepoint[i].wfactors = max(min(log(factorweight/particlepoint[i].weight),2.),0.);
         }
@@ -518,46 +529,55 @@ void ParticleFilter::CalcFOVArea(int focus, int top, int bottom, int top_width, 
     ROS_INFO("CalcFOVArea");
     for(int i = 0; i < particlepoint_num; i++)
     {
-        ROS_INFO("i = %d",i);
+        // ROS_INFO("i = %d",i);
         particlepoint[i].FOV_dir = normalize_angle(particlepoint[i].pos.angle + horizontal_head_angle);
-        float VFOV = 40.27706125;
-        float HFOV = 55.0;
-        float HVFOV = VFOV/2.0;
-        float HHFOV = HFOV/2.0;
-        //coordinate Camera_Focus;
-        float camera_height = 56.46;
-        // float camera2robot_dis = camera_height * sin((imu_data.roll - HVFOV)* DEG2RAD);
-        float image_bottom_angle = imu_data.roll - HVFOV;
+        // float VFOV = 40.27706125;
+        // float HFOV = 55.0;
+        // float HVFOV = VFOV/2.0;
+        // float HHFOV = HFOV/2.0;
+        // //coordinate Camera_Focus;
+        // float camera_height = 56.46;
+        // // float camera2robot_dis = camera_height * sin((imu_data.roll - HVFOV)* DEG2RAD);
+        // float image_bottom_angle = imu_data.roll - HVFOV;
 
-        float image_top_length = 0.0;
-        float image_top_width_length = 0.0;
+        // float image_top_length = 0.0;
+        // float image_top_width_length = 0.0;
         
-        if((VFOV + image_bottom_angle)>=86.5)
-        {
-            image_top_length = camera_height * tan(86.5 * DEG2RAD);
-            image_top_width_length = (camera_height / cos(86.5 * DEG2RAD)) * tan(HHFOV * DEG2RAD);
-        }else{
-            image_top_length = camera_height * tan((VFOV + image_bottom_angle) * DEG2RAD);
-            image_top_width_length = (camera_height / cos((VFOV + image_bottom_angle) * DEG2RAD)) * tan(HHFOV * DEG2RAD);
-        }
-        float image_bottom_length = camera_height * tan(image_bottom_angle * DEG2RAD);
-        float image_bottom_width_length = (camera_height * tan(HHFOV * DEG2RAD)) / cos(image_bottom_angle * DEG2RAD);
+        // if((VFOV + image_bottom_angle)>=86.5)
+        // {
+        //     image_top_length = camera_height * tan(86.5 * DEG2RAD);
+        //     image_top_width_length = (camera_height / cos(86.5 * DEG2RAD)) * tan(HHFOV * DEG2RAD);
+        // }else{
+        //     image_top_length = camera_height * tan((VFOV + image_bottom_angle) * DEG2RAD);
+        //     image_top_width_length = (camera_height / cos((VFOV + image_bottom_angle) * DEG2RAD)) * tan(HHFOV * DEG2RAD);
+        // }
+        // float image_bottom_length = camera_height * tan(image_bottom_angle * DEG2RAD);
+        // float image_bottom_width_length = (camera_height * tan(HHFOV * DEG2RAD)) / cos(image_bottom_angle * DEG2RAD);
 
-        float HFOV_2D_bottom = atan2(image_bottom_width_length,image_bottom_length) * RAD2DEG;
+
+        // float HFOV_2D_bottom = atan2(image_bottom_width_length,image_bottom_length) * RAD2DEG;
+        // HFOV_2D_bottom = normalize_angle(HFOV_2D_bottom);
+        // float HFOV_2D_top = atan2(image_top_width_length,image_top_length) * RAD2DEG;
+        // HFOV_2D_top = normalize_angle(HFOV_2D_top);
+
+
+        float HFOV_2D_bottom = atan2(bottom_width,bottom) * 180 / PI;
         HFOV_2D_bottom = normalize_angle(HFOV_2D_bottom);
-        float HFOV_2D_top = atan2(image_top_width_length,image_top_length) * RAD2DEG;
+        float HFOV_2D_top = atan2(top_width,top) * 180 / PI;
         HFOV_2D_top = normalize_angle(HFOV_2D_top);
+        float top_waist_length = sqrt(pow(top,2) + pow(top_width,2));
+        float bottom_waist_length = sqrt(pow(bottom,2) + pow(bottom_width,2));
 
-        //Camera_Focus.x = particlepoint[i].pos.pose.x + focus * cos(FOV_dir * DEG2RAD);
-        //Camera_Focus.y = particlepoint[i].pos.pose.y + focus * sin(FOV_dir * DEG2RAD);
+        // //Camera_Focus.x = particlepoint[i].pos.pose.x + focus * cos(FOV_dir * DEG2RAD);
+        // //Camera_Focus.y = particlepoint[i].pos.pose.y + focus * sin(FOV_dir * DEG2RAD);
         float right_sight_top_angle = normalize_angle(particlepoint[i].FOV_dir - HFOV_2D_top);
         float right_sight_bottom_angle = normalize_angle(particlepoint[i].FOV_dir - HFOV_2D_bottom);
         float left_sight_top_angle = normalize_angle(particlepoint[i].FOV_dir + HFOV_2D_top);
         float left_sight_bottom_angle = normalize_angle(particlepoint[i].FOV_dir + HFOV_2D_bottom);
 
         
-        float top_waist_length = sqrt(pow(image_top_length,2) + pow(image_top_width_length,2));
-        float bottom_waist_length = sqrt(pow(image_bottom_length,2) + pow(image_bottom_width_length,2));
+        // float top_waist_length = sqrt(pow(image_top_length,2) + pow(image_top_width_length,2));
+        // float bottom_waist_length = sqrt(pow(image_bottom_length,2) + pow(image_bottom_width_length,2));
 
 
         // ROS_INFO("image_bottom_angle = %f",image_bottom_angle); 
@@ -577,7 +597,7 @@ void ParticleFilter::CalcFOVArea(int focus, int top, int bottom, int top_width, 
         // ROS_INFO("right_sight_bottom_angle = %f",right_sight_bottom_angle); 
         // ROS_INFO("left_sight_top_angle = %f",left_sight_top_angle); 
         // ROS_INFO("left_sight_bottom_angle = %f",left_sight_bottom_angle); 
-        
+
         particlepoint[i].FOV_Bottom_Right.x = particlepoint[i].pos.pose.x + bottom_waist_length * cos(right_sight_bottom_angle * DEG2RAD);
         particlepoint[i].FOV_Bottom_Right.x = Frame_Area(particlepoint[i].FOV_Bottom_Right.x, MAP_LENGTH);
         particlepoint[i].FOV_Bottom_Right.y = particlepoint[i].pos.pose.y - bottom_waist_length * sin(right_sight_bottom_angle * DEG2RAD);
@@ -868,6 +888,7 @@ void ParticleFilter::FindLandMarkInVirtualField(ParticlePoint *particlepoint)
         }  
         particlepoint->landmark_list[ID].Nearest_point = landmark_tmp.Nearest_point;
         particlepoint->landmark_list[ID].start_point = landmark_tmp.start_point;
+        particlepoint->landmark_list[ID].Line_length = landmark_tmp.Line_length;
         particlepoint->landmark_list[ID].end_point = landmark_tmp.end_point;
         particlepoint->landmark_list[ID].Line_theta = landmark_tmp.Line_theta;
         // particlepoint->landmark_list[ID].update = true; 
@@ -910,43 +931,43 @@ void ParticleFilter::CalcFOVArea_averagepos(int focus, int top, int bottom, int 
     Robot_Position.FOV_dir = normalize_angle(Robot_Position.pos.angle + horizontal_head_angle);
 
     //coordinate Camera_Focus;
-    float VFOV = 40.27706125;
-    float HFOV = 55.0;
-    float HVFOV = VFOV/2.0;
-    float HHFOV = HFOV/2.0;
-    //coordinate Camera_Focus;
-    float camera_height = 56.46;
-    float camera2robot_dis = camera_height * sin((imu_data.roll - HVFOV)* DEG2RAD);
-    float image_bottom_angle = imu_data.roll - HVFOV;
-    float image_top_length = 0.0;
-    float image_top_width_length = 0.0;
+    // float VFOV = 40.27706125;
+    // float HFOV = 55.0;
+    // float HVFOV = VFOV/2.0;
+    // float HHFOV = HFOV/2.0;
+    // //coordinate Camera_Focus;
+    // float camera_height = 56.46;
+    // float camera2robot_dis = camera_height * sin((imu_data.roll - HVFOV)* DEG2RAD);
+    // float image_bottom_angle = imu_data.roll - HVFOV;
+    // float image_top_length = 0.0;
+    // float image_top_width_length = 0.0;
     
-    if((VFOV + image_bottom_angle)>=86.5)
-    {
-        image_top_length = camera_height * tan(86.5 * DEG2RAD);
-        image_top_width_length = (camera_height / cos(86.5 * DEG2RAD)) * tan(HHFOV * DEG2RAD);
-    }else{
-        image_top_length = camera_height * tan((VFOV + image_bottom_angle) * DEG2RAD);
-        image_top_width_length = (camera_height / cos((VFOV + image_bottom_angle) * DEG2RAD)) * tan(HHFOV * DEG2RAD);
-    }
+    // if((VFOV + image_bottom_angle)>=86.5)
+    // {
+    //     image_top_length = camera_height * tan(86.5 * DEG2RAD);
+    //     image_top_width_length = (camera_height / cos(86.5 * DEG2RAD)) * tan(HHFOV * DEG2RAD);
+    // }else{
+    //     image_top_length = camera_height * tan((VFOV + image_bottom_angle) * DEG2RAD);
+    //     image_top_width_length = (camera_height / cos((VFOV + image_bottom_angle) * DEG2RAD)) * tan(HHFOV * DEG2RAD);
+    // }
 
-    float image_bottom_length = camera_height * tan(image_bottom_angle * DEG2RAD);
-    float image_bottom_width_length = (camera_height / cos(image_bottom_angle * DEG2RAD)) * tan(HHFOV * DEG2RAD);
+    // float image_bottom_length = camera_height * tan(image_bottom_angle * DEG2RAD);
+    // float image_bottom_width_length = (camera_height / cos(image_bottom_angle * DEG2RAD)) * tan(HHFOV * DEG2RAD);
 
-    float top_waist_length = sqrt(pow(image_top_length,2) + pow(image_top_width_length,2));
-    float bottom_waist_length = sqrt(pow(image_bottom_length,2) + pow(image_bottom_width_length,2));
+    // float top_waist_length = sqrt(pow(image_top_length,2) + pow(image_top_width_length,2));
+    // float bottom_waist_length = sqrt(pow(image_bottom_length,2) + pow(image_bottom_width_length,2));
 
-    float HFOV_2D_bottom = atan2(image_bottom_width_length,image_bottom_length) * 180 / PI;
-    HFOV_2D_bottom = normalize_angle(HFOV_2D_bottom);
-    float HFOV_2D_top = atan2(image_top_width_length,image_top_length) * 180 / PI;
-    HFOV_2D_top = normalize_angle(HFOV_2D_top);
-    
-    // float HFOV_2D_bottom = atan2(bottom_width,bottom) * 180 / PI;
+    // float HFOV_2D_bottom = atan2(image_bottom_width_length,image_bottom_length) * 180 / PI;
     // HFOV_2D_bottom = normalize_angle(HFOV_2D_bottom);
-    // float HFOV_2D_top = atan2(top_width,top) * 180 / PI;
+    // float HFOV_2D_top = atan2(image_top_width_length,image_top_length) * 180 / PI;
     // HFOV_2D_top = normalize_angle(HFOV_2D_top);
-    // float top_waist_length = sqrt(pow(top,2) + pow(top_width,2));
-    // float bottom_waist_length = sqrt(pow(bottom,2) + pow(bottom_width,2));
+    
+    float HFOV_2D_bottom = atan2(bottom_width,bottom) * 180 / PI;
+    HFOV_2D_bottom = normalize_angle(HFOV_2D_bottom);
+    float HFOV_2D_top = atan2(top_width,top) * 180 / PI;
+    HFOV_2D_top = normalize_angle(HFOV_2D_top);
+    float top_waist_length = sqrt(pow(top,2) + pow(top_width,2));
+    float bottom_waist_length = sqrt(pow(bottom,2) + pow(bottom_width,2));
 
     //Camera_Focus.x = Robot_Position.pos.pose.x + focus * cos(FOV_dir * DEG2RAD);
     //Camera_Focus.y = Robot_Position.pos.pose.y + focus * sin(FOV_dir * DEG2RAD);
@@ -1427,6 +1448,8 @@ void ParticleFilter::resample()
     vector<ParticlePoint> tmp;
     int best_particle_num = TournamentResample(excellent_particle_num);
     int rand_angle = rand_angle_init * 2 + 1;
+    ROS_INFO("weight_slow = %f",weight_slow);
+    ROS_INFO("weight_fast = %f",weight_fast);
     ROS_INFO("particlepoint[best_particle_num].pos = %d %d %f",particlepoint[best_particle_num].pos.pose.x,particlepoint[best_particle_num].pos.pose.y,particlepoint[best_particle_num].pos.angle);
     ROS_INFO("particlepoint[best_particle_num].weight = %f",particlepoint[best_particle_num].weight);
     for(int i = 0; i < particlepoint_num; ++i)
