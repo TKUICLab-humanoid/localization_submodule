@@ -30,7 +30,7 @@ ParticleFilter::ParticleFilter()
     // posy = init_robot_pos_y;
     rotation = init_robot_pos_dir;
     total_weight = 0.0;
-    R << 1, 0, 0, 0.1;
+    R << 0.01, 0, 0, 0.01;
     //////////////////KLD//////////////////
     min_particlepoint_num = 50;
     kld_err = 0.45;             //defalut 0.05
@@ -77,7 +77,7 @@ void ParticleFilter::ParticlePointInitialize(unsigned int landmark_size)
     {
         tmp.pos.pose = Point(x_random_distribution(x_generator),y_random_distribution(y_generator));
         tmp.pos.angle = 0.0;
-        tmp.weight = 0.7;
+        tmp.weight = 1.0/(float)particlepoint_num;
         tmp.landmark_list.resize(landmark_size);
         for (int j = 0; j < landmark_size; j++) 
         {
@@ -113,8 +113,8 @@ void ParticleFilter::StatePredict(const movement_data& u,bool first_loop_flag)
                 particlepoint[i].pos.pose.y = tmp.y;
             }
         }else{
-            particlepoint[i].pos.pose.x = init_robot_pos_x + (rand() % 31 - 15);
-            particlepoint[i].pos.pose.y = init_robot_pos_y + (rand() % 31 - 15);
+            particlepoint[i].pos.pose.x = init_robot_pos_x + (rand() % 51 - 25);
+            particlepoint[i].pos.pose.y = init_robot_pos_y + (rand() % 51 - 25);
             particlepoint[i].pos.angle = init_robot_pos_dir + rand()%rand_angle - rand_angle_init;
         }
         // ROS_INFO("particlepoint[%d] = %d %d %f",i,particlepoint[i].pos.pose.x,particlepoint[i].pos.pose.y,particlepoint[i].pos.angle);
@@ -350,17 +350,17 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
             Eigen::Vector2d h;
             double likehoodtmp = 0.0;
             // ROS_INFO("particlepoint[%d].landmark_list = %d",i,particlepoint[i].landmark_list.size());
-            ROS_INFO("Line_observation_data_Size = %d",Line_observation_data_Size);
+            // ROS_INFO("Line_observation_data_Size = %d",Line_observation_data_Size);
             for(int j = 0; j < Line_observation_data_Size; j++)
             {
                 double maxscore = 0.0;
                 double linemaxscore = 0.0;
                 int ID = 0;
                 ROS_INFO("Line_observation_data [%d] = %f %f",j,(*(Line_observation_data + j)).distance,normalize_angle_RAD((*(Line_observation_data + j)).Line_theta));
-                if((*(Line_observation_data + j)).distance == 0.0)
-                {
-                    continue;
-                }
+                // if((*(Line_observation_data + j)).distance == 0.0)
+                // {
+                //     continue;
+                // }
                 for(int m = 0; m < particlepoint[i].landmark_list.size(); m++)//計算虛擬地圖中的地標相似性
                 {
                     double p = 0.0;
@@ -407,7 +407,7 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
                             maxscore = p;
                             ID = m; 
                         }  
-                        float Line_length_diff = abs((*(Line_observation_data + j)).Line_length - particlepoint[i].landmark_list[m].Line_length);
+                        // float Line_length_diff = abs((*(Line_observation_data + j)).Line_length - particlepoint[i].landmark_list[m].Line_length);
                         
                         // if(abs(z_diff(0)) < 0.2 && abs(z_diff(1)) < 2.0 * DEG2RAD && Line_length_diff < 30.0)
                         // {
@@ -429,17 +429,22 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
                             particlepoint[i].landmark_list[ID].sigma = (I - K * G)*particlepoint[i].landmark_list[ID].sigma;
                             // maxscore += linemaxscore;
                         }                                       
-
-                        // ROS_INFO(" expect_Z[%d] = %f %f",m,expect_Z(0),expect_Z(1)*RAD2DEG);    
-                        // ROS_INFO(" z_actual[%d] = %f %f",m,z_actual(0),z_actual(1)*RAD2DEG);    
-                        // ROS_INFO(" p[%d] = %f",m,p);          
+                        // if(round(p) != 0.0)
+                        // {
+                            ROS_INFO(" expect_Z[%d] = %f %f",m,expect_Z(0),expect_Z(1)*RAD2DEG);    
+                            ROS_INFO(" z_actual[%d] = %f %f",m,z_actual(0),z_actual(1)*RAD2DEG);    
+                            ROS_INFO(" p[%d] = %f",m,p);
+                        // }        
                     }                                         
                 }
                 // ROS_INFO(" maxscore[%d] = %f",ID,maxscore);
+                
                 likehoodtmp += maxscore;
                 // ROS_INFO("particlepoint[%d].wfactors = %f",i,particlepoint[i].wfactors);
             }
             // ROS_INFO("particlepoint[%d].weight = %f",i,particlepoint[i].weight);
+            
+            // particlepoint[i].weight *= likehoodtmp;
             particlepoint[i].weight *= (likehoodtmp/(float)Line_observation_data_Size);
             // // weight_avg = weight_avg + particlepoint[i].weight;
             // particlepoint[i].weight = particlepoint[i].weight * likehoodtmp;
@@ -480,7 +485,7 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
 
 int ParticleFilter::TournamentResample(int excellent_particle_num)
 {
-    ROS_INFO("TournamentResample");
+    // ROS_INFO("TournamentResample");
     int tournament_particle_num[excellent_particle_num] = {0};
     int best_particle_num = 0;
     float best_weight_value = 0.0;
@@ -841,7 +846,10 @@ void ParticleFilter::FindLandMarkInVirtualField(ParticlePoint *particlepoint)
                 }
                 tmp_ID.push_back(ID);
                 detect_line_list.push_back(tmpx);
+                intersect_point_list.clear();
+                virtualpointinFOV.clear();
             }else{
+                
                 count++;
             }  
         }
@@ -1446,12 +1454,11 @@ void ParticleFilter::resample()
     float reset_random_threshold = std::max(0.0, 1.0 - (weight_fast / weight_slow));
     // ROS_INFO("reset_random_threshold = %f",reset_random_threshold);
     vector<ParticlePoint> tmp;
-    int best_particle_num = TournamentResample(excellent_particle_num);
     int rand_angle = rand_angle_init * 2 + 1;
     ROS_INFO("weight_slow = %f",weight_slow);
     ROS_INFO("weight_fast = %f",weight_fast);
-    ROS_INFO("particlepoint[best_particle_num].pos = %d %d %f",particlepoint[best_particle_num].pos.pose.x,particlepoint[best_particle_num].pos.pose.y,particlepoint[best_particle_num].pos.angle);
-    ROS_INFO("particlepoint[best_particle_num].weight = %f",particlepoint[best_particle_num].weight);
+    // ROS_INFO("particlepoint[best_particle_num].pos = %d %d %f",particlepoint[best_particle_num].pos.pose.x,particlepoint[best_particle_num].pos.pose.y,particlepoint[best_particle_num].pos.angle);
+    // ROS_INFO("particlepoint[best_particle_num].weight = %f",particlepoint[best_particle_num].weight);
     for(int i = 0; i < particlepoint_num; ++i)
     {
         double random = ((double)rand() / (RAND_MAX));
@@ -1465,7 +1472,7 @@ void ParticleFilter::resample()
             current_particle.pos.pose.y = y_random_distribution(y_generator);
             current_particle.pos.angle = normalize_angle(Robot_Position.pos.angle + rand()%rand_angle - rand_angle_init);
             current_particle.landmark_list.resize(field_list.size());
-            current_particle.weight = 0.7;
+            current_particle.weight = 1.0/(float)particlepoint_num;
             for(int j = 0; j< field_list.size(); j++)
             {
                 current_particle.landmark_list[j].obersvated = false;
@@ -1480,11 +1487,12 @@ void ParticleFilter::resample()
         else
         {
             // ROS_INFO("random > reset_random_threshold");
+            int best_particle_num = TournamentResample(excellent_particle_num);
             current_particle.pos.angle = normalize_angle(Robot_Position.pos.angle);
             current_particle.pos.pose.x = particlepoint[best_particle_num].pos.pose.x;
             current_particle.pos.pose.y = particlepoint[best_particle_num].pos.pose.y;
             current_particle.landmark_list = particlepoint[best_particle_num].landmark_list;
-            current_particle.weight = 0.7;
+            current_particle.weight = 1.0/(float)particlepoint_num;
             // for(int j = 0; j< field_list.size(); j++)
             // {
             //     current_particle.landmark_list[j].obersvated = particlepoint[best_particle_num].landmark_list[j].obersvated;

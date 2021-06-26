@@ -82,11 +82,6 @@ void Localization_main::GetObservationDataFunction(const tku_msgs::ObservationDa
     feature_point_observation_data.clear();
     Line_observation_data.clear();
     
-    Point end_point;
-    Point start_point;
-    // Point center_point;
-    double Line_length;
-    double Line_theta; 
     for(int i = 0; i < msg.landmark.size(); i++)
     {
         LineINF lineinf;
@@ -100,6 +95,7 @@ void Localization_main::GetObservationDataFunction(const tku_msgs::ObservationDa
         Line_observation_data.push_back(lineinf);
     }
     Line_observation_data_Size = Line_observation_data.size();
+    
     if(Line_observation_data.size() == 0)
     {
         Line_observation_data_flag = false;
@@ -195,12 +191,12 @@ void Localization_main::GetIMUDataFunction(const tku_msgs::SensorPackage &msg)
                     }
                     else
                     {
-                         Robot_Position.pos.angle = angle_pre[0];
+                        Robot_Position.pos.angle = angle_pre[0];
                     }
                 }
             }
         }
-        //ROS_INFO("Angle_1 = %f",Robot_Position.pos.angle);
+        // ROS_INFO("Angle_1 = %f",angle_pre[0]);
     }
 }
 
@@ -304,7 +300,7 @@ int main(int argc, char** argv)
     //set the robot position
     robot_pos_x_init = 750; 
     robot_pos_y_init = 213;
-    robot_pos_dir_init = 90.0;
+    robot_pos_dir_init = 0.0;
 
     bool reset_flag = false;
 
@@ -398,9 +394,12 @@ void Localization_main::strategy_main()
         CalcFOVArea(Camera_Focus, Image_Top_Length, Image_Bottom_Length, Image_Top_Width_Length, Image_Bottom_Width_Length, Horizontal_Head_Angle);
         FindFeaturePoint();
         LandMarkMode(Landmarkmode::PARTICLEPIONT);
+       
         if(observation_data.scan_line.size() > 0 && observation_data.landmark.size()>=0)
         {
             FindBestParticle(&feature_point_observation_data[0], &Line_observation_data[0]);
+            // imshow("FOV_Field",DrawFOV());
+            // waitKey(0);
             CalcFOVArea_averagepos(Camera_Focus, Image_Top_Length, Image_Bottom_Length, Image_Top_Width_Length, Image_Bottom_Width_Length, Horizontal_Head_Angle);
             LandMarkMode(Landmarkmode::ROBOT);
         }
@@ -415,7 +414,7 @@ void Localization_main::strategy_main()
         }
         
         //observation_data.clear();
-        // imshow("FOV_Field",DrawParticlePoint());
+        
         // namedWindow("ParticlePoint",WINDOW_NORMAL);
         // imshow("ParticlePoint",DrawParticlePoint());
         // namedWindow("RobotPos",WINDOW_AUTOSIZE);
@@ -451,7 +450,7 @@ void Localization_main::strategy_main()
 
     DrawRobotPos_Publisher.publish(msg_DrawRobotPos);
     ParticlePoint_Publisher.publish(msg_ParticlePoint);
-    waitKey(10);
+    waitKey(800);
 }
 
 // void Localization_main::strategy_main()

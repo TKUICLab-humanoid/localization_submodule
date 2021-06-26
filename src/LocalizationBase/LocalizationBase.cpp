@@ -339,9 +339,7 @@ Point LocalizationBase::MinIntersectPoint(Vec4i line, Point A, double mindistanc
             }
             // ROS_INFO(" dis = %f min_value = %f,mindistance = %f",dis ,min_value,mindistance);
         }
-    }
-
-    
+    } 
     // ROS_INFO("MinIntersectPoint = (%d,%d)",minIntersectPoint.x,minIntersectPoint.y);
     return minIntersectPoint;
 }

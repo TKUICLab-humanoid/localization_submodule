@@ -136,12 +136,27 @@ Mat Drawing::DrawField()    //E223 field
                 }
             }
             FieldLine_tmp.Line_ID = count;
-            count ++;
-            if(i==5)
+            
+            if(i == 1 || i == 3)
+            {
+                if(j == 3)
+                {
+                    continue;
+                }
+            }
+            if( i == 2 || i == 4)
+            {
+                if(j == 1)
+                {
+                    continue;
+                }
+            }
+            if(i == 5)
             {
                 field_list.push_back(FieldLine_tmp);
                 break;
             }
+            count ++;
             // ROS_INFO("FieldLine_tmp(%d %d) %d %d %d %d ", i,j,FieldLine_tmp.start_point.x,FieldLine_tmp.start_point.y,FieldLine_tmp.end_point.x,FieldLine_tmp.end_point.y);
             field_list.push_back(FieldLine_tmp);
         }
@@ -284,7 +299,13 @@ Mat Drawing::DrawFOV()
         }
         FOV_Point_tmp.push_back(Point(particlepoint[i].FOV_Top_Left.x,particlepoint[i].FOV_Top_Left.y));
         FOV_Point_tmp.push_back(Point(particlepoint[i].FOV_Bottom_Left.x,particlepoint[i].FOV_Bottom_Left.y));
-
+        
+        for(int j = 0; j < particlepoint[i].landmark_list.size(); j++)
+        {
+            Point start = particlepoint[i].landmark_list[j].start_point;
+            Point end = particlepoint[i].landmark_list[j].end_point;
+            line(tmp_FOV, start, end, Scalar(0, 0, 255), 2);
+        }
         //const Point* ppt[1] = {&tmp[0]};
         //int npt[] = {4};
 
