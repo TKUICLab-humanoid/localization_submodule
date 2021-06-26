@@ -2,9 +2,9 @@
   state:
     which_robot: 'robot1'
     robot1: 'attacker'
-    robot2: 'null'
-    robot3: 'null'
-    robot4: 'null'
+    robot2: 'supporter1'
+    robot3: 'supporter2'
+    robot4: 'defender'
   topic:
     robot1: '/robot1/alldata'
     robot2: '/robot2/alldata'

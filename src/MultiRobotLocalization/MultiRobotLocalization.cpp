@@ -656,7 +656,7 @@ void MultiRobotLocalization::transmitRoboCupInfo()
 	robotCupInfo->characterInfo->testShow();
 	robotCupInfo->characterInfo->testShowTimer();
 	robotCupInfo->characterInfo->setTimerPass(1000, false);
-	saveData();
+	// saveData();
 	ROS_INFO("PRS = %s", robotCupInfo->characterInfo->getPRS().c_str());
 }
 
