@@ -196,6 +196,9 @@ void Localization_main::GetSetRobotPosFunction(const tku_msgs::SetRobotPos &msg)
     robot_pos_y_init = msg.y;
     robot_pos_dir_init = msg.dir;
     // }
+    ROS_INFO("Robot_Position.postion.X: %d", Robot_Position.postion.X);
+    ROS_INFO("Robot_Position.postion.Y: %d", Robot_Position.postion.Y);
+    ROS_INFO("Robot_Position.angle: %f", Robot_Position.angle);
 }
 
 void Localization_main::StartFunction(const std_msgs::Bool &msg)
@@ -353,11 +356,20 @@ void Localization_main::strategy_main()
     //FOV_Filed = DrawFOV();
     //particlepoint.clear();
 
+    ROS_INFO("localization_pos.weight:%f", 1 - Robot_Position.weight);
+
     localization_pos.x = Robot_Position.postion.X;
     localization_pos.y = Robot_Position.postion.Y;
     localization_pos.dir = Robot_Position.angle;
-    localization_pos.weight = Robot_Position.weight;
+    // time_t t;
+    // srand((unsigned) time(&t));
+    // localization_pos.x = robot_pos_x_init + (rand() % 21 - 10);
+    // localization_pos.y = robot_pos_y_init+ (rand() % 21 - 10);
+    // localization_pos.dir = robot_pos_dir_init + (rand() % 11 - 5);
+    localization_pos.weight =  1 - Robot_Position.weight;
     LocalizationPos_Publisher.publish(localization_pos);
+
+    Robot_Position.weight = 1.0;
 
     //tool->Delay(4000);
     //ROS_INFO("distance = %d",Robot_Position.featurepoint[18].dis);
@@ -374,6 +386,6 @@ void Localization_main::strategy_main()
     ROS_INFO("FOV_Bottom_Left = %d",Robot_Position.FOV_Bottom_Left.X);
     ROS_INFO("FOV_Bottom_Left = %d",Robot_Position.FOV_Bottom_Left.Y);*/
 
-    waitKey(1);
+    // waitKey(1);
 }
 

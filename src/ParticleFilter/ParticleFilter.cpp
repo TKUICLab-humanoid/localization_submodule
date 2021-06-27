@@ -364,7 +364,7 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data)
     particlepoint_compare = particlepoint;
     sort(particlepoint_compare.begin(), particlepoint_compare.end(), greater<ParticlePoint>());
     FindRobotPosition(x_avg, y_avg);
-    ROS_INFO("weight:%f", particlepoint[0].weight);
+    // ROS_INFO("weight:%f", particlepoint[0].weight);
     // ROS_INFO("weight_low:%f", particlepoint[particlepoint.size() - 1].weight);
     // ROS_INFO("x:%d", Robot_Position.postion.X);
     // ROS_INFO("y:%d", Robot_Position.postion.Y);

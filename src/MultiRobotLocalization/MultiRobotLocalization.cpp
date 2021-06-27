@@ -154,6 +154,9 @@ void MultiRobotLocalization::calculateSelfPosition()
 	itMyself->second->global.x_pos = (int)robotX;
 	itMyself->second->global.y_pos = (int)robotY;
 	itMyself->second->global.theta = robotTheta;
+	// itMyself->second->global.x_pos = (int)localizationPosition.position.x;
+	// itMyself->second->global.y_pos = (int)localizationPosition.position.y;
+	// itMyself->second->global.theta = localizationPosition.theta;
 	itMyself->second->local.x_pos = (int)robotX;
 	itMyself->second->local.y_pos = (int)robotY;
 	itMyself->second->local.theta = robotTheta;
@@ -688,6 +691,7 @@ void MultiRobotLocalization::publishPosition()
 
 	soccerPosition.x = itMyself->second->object["soccer"].global.x_pos;
 	soccerPosition.y = itMyself->second->object["soccer"].global.y_pos;
+	soccerPosition.exist_flag = itMyself->second->object["soccer"].exist_flag;
 	SoccerPos_Publisher.publish(soccerPosition);
 }
 
@@ -819,11 +823,11 @@ MultiRobotLocalization::MultiRobotLocalization(ros::NodeHandle &nh)
 	itMyself = robotCupInfo->characterInfo->who.find("myself");
 
 	tool->Delay(500);
-    ros_com->sendHeadMotor(HeadMotorID::HorizontalID, 2048, 200);
-    tool->Delay(50);
-    ros_com->sendHeadMotor(HeadMotorID::VerticalID, 1700, 200);
-    tool->Delay(50);
-    ros_com->sendSensorReset();//IMU值重製
+    // ros_com->sendHeadMotor(HeadMotorID::HorizontalID, 2048, 200);
+    // tool->Delay(50);
+    // ros_com->sendHeadMotor(HeadMotorID::VerticalID, 1700, 200);
+    // tool->Delay(50);
+    // ros_com->sendSensorReset();//IMU值重製
 }
 
 MultiRobotLocalization::~MultiRobotLocalization()
