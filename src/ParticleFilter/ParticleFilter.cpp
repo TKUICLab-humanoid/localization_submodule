@@ -8,7 +8,7 @@ ParticleFilter::ParticleFilter()
 
     Robot_Position.pos.pose.x = 750; //830  700
     Robot_Position.pos.pose.y = 213; //640  370
-    Robot_Position.pos.angle = 90.0;
+    Robot_Position.pos.angle = 0.0;
 
     continuous_x = 0;
     continuous_y = 0;
@@ -30,7 +30,7 @@ ParticleFilter::ParticleFilter()
     // posy = init_robot_pos_y;
     rotation = init_robot_pos_dir;
     total_weight = 0.0;
-    R << 0.01, 0, 0, 0.01;
+    R << 0.01, 0, 0, 0.001;
     //////////////////KLD//////////////////
     min_particlepoint_num = 50;
     kld_err = 0.45;             //defalut 0.05
@@ -47,7 +47,7 @@ ParticleFilter::ParticleFilter()
 
     localization_flag = true;
     find_best_flag = true;
-    use_feature_point = false;
+    use_feature_point = true;
     use_lineinformation = true;
     SigmaIMU = 10;
 
@@ -84,6 +84,7 @@ void ParticleFilter::ParticlePointInitialize(unsigned int landmark_size)
             // tmp.landmark_list[j].mu << 0,0;
             tmp.landmark_list[j].sigma << 0, 0, 0, 0;
             tmp.landmark_list[j].obersvated = false;
+            tmp.landmark_list[j].realdistance = 0.0;
         }
         particlepoint.push_back(tmp);
         // ROS_INFO("particlepoint pos= %d %d",tmp.pos.pose.x,tmp.pos.pose.y);
@@ -247,7 +248,7 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
     ROS_INFO("FindBestParticle");
     int factorweight = 1;
     double totalweight = 0.0;
-    int Lineweight = 0.0;
+    double Lineweight = 0.0;
     int fwl = -1;
     // A_MCL (長期移動平均)
     float x_avg = 0.0;
@@ -340,25 +341,30 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
                 
             }
             particlepoint[i].weight = (float)particlepoint[i].fitness_value / ((float)(real_feature_point_cnt * MAP_MAX_LENGTH));
+            ROS_INFO("particlepoint[%d].weight = %f",i,particlepoint[i].weight);  
             // factorweight *= exp(fwl)/(sqrt(2*M_PI))*SigmaIMU;
             // particlepoint[i].wfactors = max(min(log(factorweight/particlepoint[i].weight),2.),0.);
         }
         //待修改
         if(use_lineinformation)
         {
-            // Lineweight = 0.001;
+            Lineweight = 1.0/(float)particlepoint_num;
+            double dis_diff = 0.0;
+
             Eigen::Vector2d h;
             double likehoodtmp = 0.0;
             // ROS_INFO("particlepoint[%d].landmark_list = %d",i,particlepoint[i].landmark_list.size());
             // ROS_INFO("Line_observation_data_Size = %d",Line_observation_data_Size);
+            int x = Line_observation_data_Size;
             for(int j = 0; j < Line_observation_data_Size; j++)
             {
                 double maxscore = 0.0;
                 double linemaxscore = 0.0;
                 int ID = 0;
-                ROS_INFO("Line_observation_data [%d] = %f %f",j,(*(Line_observation_data + j)).distance,normalize_angle_RAD((*(Line_observation_data + j)).Line_theta));
-                // if((*(Line_observation_data + j)).distance == 0.0)
+                // ROS_INFO("Line_observation_data [%d] = %f %f",j,(*(Line_observation_data + j)).distance,normalize_angle_RAD((*(Line_observation_data + j)).Line_theta));
+                // if((*(Line_observation_data + j)).Line_length <= 0.5)
                 // {
+                //     x --;
                 //     continue;
                 // }
                 for(int m = 0; m < particlepoint[i].landmark_list.size(); m++)//計算虛擬地圖中的地標相似性
@@ -397,24 +403,21 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
                         z_diff(1) = AngleDiff(z_diff(1));
                         double p = exp(-0.5*z_diff.transpose()*Z.inverse()*z_diff)/sqrt(2 * M_PI * Z.determinant());
                         // ROS_INFO(" p = %f",p);
+                        
+                        
                         if(m == 0)
                         {
                             maxscore = p;
                             ID = m;
+                            dis_diff = z_diff(0);
                         }
                         else if(maxscore < p)
                         {
                             maxscore = p;
                             ID = m; 
+                            dis_diff = z_diff(0);
                         }  
-                        // float Line_length_diff = abs((*(Line_observation_data + j)).Line_length - particlepoint[i].landmark_list[m].Line_length);
                         
-                        // if(abs(z_diff(0)) < 0.2 && abs(z_diff(1)) < 2.0 * DEG2RAD && Line_length_diff < 30.0)
-                        // {
-                        //     linemaxscore = linemaxscore + 1.5;
-                        // }else {
-                        //     linemaxscore = linemaxscore - 0.5;
-                        // }
 
                         if(m == particlepoint[i].landmark_list.size()-1)
                         {
@@ -427,6 +430,11 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
                             //calculate the Kalman gain K
                             Eigen::Matrix2d K = sig * G.transpose() * Z.inverse();
                             particlepoint[i].landmark_list[ID].sigma = (I - K * G)*particlepoint[i].landmark_list[ID].sigma;
+                            particlepoint[i].landmark_list[ID].realdistance = dis_diff;
+                            if(abs(particlepoint[i].landmark_list[ID].Line_length - dis_diff) > 1.5)
+                            {
+                                likehoodtmp -= 3.0;
+                            } 
                             // maxscore += linemaxscore;
                         }                                       
                         // if(round(p) != 0.0)
@@ -435,24 +443,33 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
                             ROS_INFO(" z_actual[%d] = %f %f",m,z_actual(0),z_actual(1)*RAD2DEG);    
                             ROS_INFO(" p[%d] = %f",m,p);
                         // }        
-                    }                                         
+                    }  
+                                                          
                 }
+                if(abs(particlepoint[i].landmark_list[9].realdistance - particlepoint[i].landmark_list[15].realdistance) <= 1.10)
+                {
+                    likehoodtmp += 1.0;
+                }
+                
                 // ROS_INFO(" maxscore[%d] = %f",ID,maxscore);
                 
                 likehoodtmp += maxscore;
-                // ROS_INFO("particlepoint[%d].wfactors = %f",i,particlepoint[i].wfactors);
+                // ROS_INFO("particlepoint[%d].wfactors = %f",i,particlepoint[i].wfactors);           
+            
             }
             // ROS_INFO("particlepoint[%d].weight = %f",i,particlepoint[i].weight);
             
             // particlepoint[i].weight *= likehoodtmp;
-            particlepoint[i].weight *= (likehoodtmp/(float)Line_observation_data_Size);
+            Lineweight *= (likehoodtmp);
             // // weight_avg = weight_avg + particlepoint[i].weight;
             // particlepoint[i].weight = particlepoint[i].weight * likehoodtmp;
-            ROS_INFO("particlepoint[%d].weight = %f",i,particlepoint[i].weight);  
+            ROS_INFO("Lineweight[%d] = %f",i,Lineweight);  
             factorweight *= exp(fwl)/(sqrt(2*M_PI))*SigmaIMU;
             particlepoint[i].wfactors = max(min(log(factorweight/particlepoint[i].weight),2.),0.);
         }
-        // ROS_INFO("----particlepoint[%d].weight = %f----",i,particlepoint[i].weight);
+        
+        particlepoint[i].weight += Lineweight;
+        ROS_INFO("----particlepoint[%d].weight = %f----",i,particlepoint[i].weight);
         totalweight += particlepoint[i].weight;
     }
     // if(use_feature_point && use_lineinformation)
@@ -1481,6 +1498,7 @@ void ParticleFilter::resample()
                 current_particle.landmark_list[j].start_point = Point(0,0);
                 current_particle.landmark_list[j].end_point = Point(0,0);
                 current_particle.landmark_list[j].Nearest_point = Point(0,0);
+                particlepoint[i].landmark_list[j].realdistance = 0.0;
             }
             tmp.push_back(current_particle);
         }

@@ -450,7 +450,7 @@ void Localization_main::strategy_main()
 
     DrawRobotPos_Publisher.publish(msg_DrawRobotPos);
     ParticlePoint_Publisher.publish(msg_ParticlePoint);
-    waitKey(800);
+    waitKey(10);
 }
 
 // void Localization_main::strategy_main()

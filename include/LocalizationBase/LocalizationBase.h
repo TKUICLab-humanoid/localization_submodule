@@ -110,6 +110,7 @@ struct LineINF
     bool obersvated;
     Eigen::Matrix2d sigma;
     bool update;
+    double realdistance;
 
 };
 
