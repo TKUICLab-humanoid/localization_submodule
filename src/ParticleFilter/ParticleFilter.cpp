@@ -77,6 +77,7 @@ void ParticleFilter::ParticlePointInitialize(unsigned int landmark_size)
         tmp.pos.pose.x = Robot_Position.pos.pose.x + (rand() % 31 - 15);   //-3 ~ 3
         tmp.pos.pose.y = Robot_Position.pos.pose.y + (rand() % 31 - 15);
         tmp.weight = 1.0/(float)particlepoint_num;
+        tmp.wfactors = 0.0;
         tmp.landmark_list.resize(landmark_size);
         for (int j = 0; j < landmark_size; j++) 
         {
@@ -100,6 +101,8 @@ void ParticleFilter::StatePredict(const movement_data& u)
         excellent_particle_num = particlepoint_num;
     }
     ///////////////////////////Augmented_MCL ///////////////////////////
+    weight_slow += alpha_slow * (totalweights/(float)particlepoint_num - weight_slow);
+    weight_fast += alpha_fast * (totalweights/(float)particlepoint_num - weight_fast);
     std::random_device rd, x_rd, y_rd;                                          //產生亂數種子                    //Produce the random seed
     std::mt19937 generator(rd());                                               //使用梅森旋轉演算法產生亂數        //Use Mersenne Twister to produce the random
     std::mt19937 x_generator(x_rd());
@@ -122,6 +125,7 @@ void ParticleFilter::StatePredict(const movement_data& u)
             current_particle.pos.pose.x = x_random_distribution(x_generator);
             current_particle.pos.pose.y = y_random_distribution(y_generator);
             current_particle.pos.angle = normalize_angle(Robot_Position.pos.angle + rand()%rand_angle - rand_angle_init);
+            current_particle.wfactors = 0.0;
             current_particle.landmark_list.resize(field_list.size());
             // current_particle.weight = 1.0/(float)particlepoint_num;
             for(int j = 0; j< field_list.size(); j++)
@@ -141,6 +145,7 @@ void ParticleFilter::StatePredict(const movement_data& u)
             int best_particle_num = TournamentResample(excellent_particle_num);
             current_particle.pos.angle = normalize_angle(Robot_Position.pos.angle);
             current_particle.landmark_list = particlepoint[best_particle_num].landmark_list;
+            current_particle.wfactors = particlepoint[best_particle_num].wfactors;
             Movement(particlepoint[best_particle_num],u.straight,u.drift,u.rotational,u.moving,u.dt);
             if(Step_flag)
             {   
@@ -259,7 +264,7 @@ void ParticleFilter::Motion(ParticlePoint &p,float straight, float drift, float 
     p.pos.pose.y = y;
     float rotat = Direction * RAD2DEG;
     p.pos.angle = normalize_angle(rotat);
-    ROS_INFO("posx = %d ,posy = %d ,rotation = %f ",x,y,normalize_angle(rotat));
+    // ROS_INFO("posx = %d ,posy = %d ,rotation = %f ",x,y,normalize_angle(rotat));
 }
 
 void ParticleFilter::GetUpBackUp()
@@ -282,10 +287,10 @@ void ParticleFilter::GetUpFrontUp()
 void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data, LineINF *Line_observation_data)
 {
     ROS_INFO("FindBestParticle");
-    int factorweight = 1;
+    double factorweight = 1.0;
     double totalweight = 0.0;
     double Lineweight = 0.0;
-    int fwl = -1;
+    double fwl = -1.0;
     // A_MCL (長期移動平均)
     float x_avg = 0.0;
     float y_avg = 0.0;
@@ -507,6 +512,7 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
             
         }
         factorweight *= exp(fwl);
+        ROS_INFO("----factorweight[%d] = %f----",i,factorweight);
         particlepoint[i].wfactors = max(min(log(factorweight/particlepoint[i].weight),2.),0.);
         // particlepoint[i].weight += Lineweight;
         ROS_INFO("----particlepoint[%d].wfactors = %f----",i,particlepoint[i].wfactors);
