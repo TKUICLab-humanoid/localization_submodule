@@ -90,7 +90,7 @@ class ParticleFilter : public FastSlam
         void FindBestParticle(scan_line *feature_point_observation_data, LineINF *Line_observation_data);
         void FindRobotPosition(float x_avg, float y_avg);
         int TournamentResample(int excellent_particle_num);
-        void StatePredict(const movement_data& u,bool first_loop_flag);
+        void StatePredict(const movement_data& u);
         // double ComputeAngLikelihoodDeg(double angle, double base, double std_deviation);
         void LandMarkMode(Landmarkmode mode);
         void GetBestPoseAndLandmark(VectorXd& mu_ );

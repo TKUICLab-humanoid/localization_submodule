@@ -62,6 +62,7 @@ void Localization_main::GetVelocityValue(const tku_msgs::GetVelocity &msg)
     Velocity_value.rotational = (float)msg.thta;
     Velocity_value.moving = (float)msg.moving;
     Velocity_value.dt = (float)msg.dt;
+    ROS_INFO("Velocity_value = %f %f %f %f %f",Velocity_value.straight,Velocity_value.drift,Velocity_value.rotational,Velocity_value.moving,Velocity_value.dt);
 }
 
 void Localization_main::GetImageLengthDataFunction(const tku_msgs::ImageLengthData &msg)
@@ -112,6 +113,7 @@ void Localization_main::GetObservationDataFunction(const tku_msgs::ObservationDa
             dis_tmp.y_dis = (int)msg.scan_line[i].feature_point[j].y_dis;
             dis_tmp.dis = (int)msg.scan_line[i].feature_point[j].dis;
             scan_tmp.feature_point.push_back(dis_tmp);
+            // ROS_INFO("dis_tmp = %d %d %d",dis_tmp.x_dis,dis_tmp.y_dis,dis_tmp.dis);
         }
         feature_point_observation_data.push_back(scan_tmp);
     }
@@ -386,10 +388,13 @@ void Localization_main::strategy_main()
     }
     else
     {
-        StatePredict(Velocity_value,first_loop_flag);
         if(first_loop_flag)
         {
             first_loop_flag = false;
+        }else
+        {
+            KLD_Sampling();
+            StatePredict(Velocity_value);
         }
         CalcFOVArea(Camera_Focus, Image_Top_Length, Image_Bottom_Length, Image_Top_Width_Length, Image_Bottom_Width_Length, Horizontal_Head_Angle);
         FindFeaturePoint();
@@ -403,16 +408,7 @@ void Localization_main::strategy_main()
             CalcFOVArea_averagepos(Camera_Focus, Image_Top_Length, Image_Bottom_Length, Image_Top_Width_Length, Image_Bottom_Width_Length, Horizontal_Head_Angle);
             LandMarkMode(Landmarkmode::ROBOT);
         }
-        if(first_loop_flag)
-        {
-            first_loop_flag = false;
-        }
-        else
-        {
-            KLD_Sampling();
-            resample();
-        }
-        
+  
         //observation_data.clear();
         
         // namedWindow("ParticlePoint",WINDOW_NORMAL);
