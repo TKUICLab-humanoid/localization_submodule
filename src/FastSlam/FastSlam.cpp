@@ -13,6 +13,7 @@ FastSlam::~FastSlam()
 void FastSlam::Measurement_model(const ParticlePoint& p, int LandMarkID, Eigen::Vector2d& h, Eigen::Matrix2d& H) 
 {
     Point landmark_point = p.landmark_list[LandMarkID].Nearest_point;//機器人與地標最近的點
+    // ROS_INFO("landmark_point[%d] = %d %d ",LandMarkID,landmark_point.x,landmark_point.y);
     Point particle_point = Point(p.pos.pose.x,p.pos.pose.y);//粒子點位置
 
     //use the current state of particle to predict measuremen ,change cm to m

@@ -67,6 +67,10 @@ class Localization_main : public Drawing
 
         void CalcStepFunction(const ros::TimerEvent& event);
         void CalcLoopRateFunction(const ros::TimerEvent& event);
+        void saveData();
+        void saveDataInitialize();
+
+
     public:
         bool get_image_data = false;
         bool is_start;
@@ -76,6 +80,7 @@ class Localization_main : public Drawing
         vector<Distance> robot_pos_error_data;
         vector<Point> robot_pos_data;
         vector<float> weight_vector;
+        std::string filePath;
     private:
         ros::NodeHandle *nh;
         ros::NodeHandle nh_timer;

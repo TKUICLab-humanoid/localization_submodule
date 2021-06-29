@@ -300,12 +300,12 @@ Mat Drawing::DrawFOV()
         FOV_Point_tmp.push_back(Point(particlepoint[i].FOV_Top_Left.x,particlepoint[i].FOV_Top_Left.y));
         FOV_Point_tmp.push_back(Point(particlepoint[i].FOV_Bottom_Left.x,particlepoint[i].FOV_Bottom_Left.y));
         
-        for(int j = 0; j < particlepoint[i].landmark_list.size(); j++)
-        {
-            Point start = particlepoint[i].landmark_list[j].start_point;
-            Point end = particlepoint[i].landmark_list[j].end_point;
-            line(tmp_FOV, start, end, Scalar(0, 0, 255), 2);
-        }
+        // for(int j = 0; j < particlepoint[i].landmark_list.size(); j++)
+        // {
+        //     Point start = particlepoint[i].landmark_list[j].start_point;
+        //     Point end = particlepoint[i].landmark_list[j].end_point;
+        //     line(tmp_FOV, start, end, Scalar(0, 0, 255), 2);
+        // }
         //const Point* ppt[1] = {&tmp[0]};
         //int npt[] = {4};
 
@@ -365,11 +365,11 @@ Mat Drawing::DrawRobotPos()
     cv::polylines(oframe, Robot_FOV_tmp, true, Scalar(128, 128, 128), 1);//第2個引數可以採用contour或者contours，均可
 
     circle(oframe, Point(Robot_Position.pos.pose.x,Robot_Position.pos.pose.y), 5, Scalar(255, 255, 0), 2);
-    for(int i = 0; i < Robot_Position.landmark_list.size(); i++)
-    {
-        Point start = Robot_Position.landmark_list[i].start_point;
-        Point end = Robot_Position.landmark_list[i].end_point;
-        line(oframe, start, end, Scalar(0, 0, 255), 2);
+    // for(int i = 0; i < Robot_Position.landmark_list.size(); i++)
+    // {
+    //     Point start = Robot_Position.landmark_list[i].start_point;
+    //     Point end = Robot_Position.landmark_list[i].end_point;
+    //     line(oframe, start, end, Scalar(0, 0, 255), 2);
         // for(int j = 0; j < Robot_Position.landmark_list[i].feature_point.size(); j++)
         // {
         //     if(Robot_Position.landmark_list[i].feature_point[j].x != -1 && Robot_Position.landmark_list[i].feature_point[j].y != -1)
@@ -377,7 +377,7 @@ Mat Drawing::DrawRobotPos()
         //         circle(oframe, Point(Robot_Position.landmark_list[i].feature_point[j].x,Robot_Position.landmark_list[i].feature_point[j].y), 3, Scalar(255, 0, 0), 3);
         //     }
         // }
-    }
+    // }
 
     Robot_FOV_tmp.clear();
     return oframe;

@@ -43,6 +43,8 @@ Localization_main::Localization_main(ros::NodeHandle &nh)
     Velocity_value.moving = 1;
     Velocity_value.dt = 0.0;
     loop_cnt_vector.clear();
+    filePath = ros::package::getPath("localization") + "/Parameter/move_FL.csv";
+
 }
 Localization_main::~Localization_main()
 {
@@ -62,7 +64,8 @@ void Localization_main::GetVelocityValue(const tku_msgs::GetVelocity &msg)
     Velocity_value.rotational = (float)msg.thta;
     Velocity_value.moving = (float)msg.moving;
     Velocity_value.dt = (float)msg.dt;
-    ROS_INFO("Velocity_value = %f %f %f %f %f",Velocity_value.straight,Velocity_value.drift,Velocity_value.rotational,Velocity_value.moving,Velocity_value.dt);
+
+    // ROS_INFO("Velocity_value = %f %f %f %f %f",Velocity_value.straight,Velocity_value.drift,Velocity_value.rotational,Velocity_value.moving,Velocity_value.dt);
 }
 
 void Localization_main::GetImageLengthDataFunction(const tku_msgs::ImageLengthData &msg)
@@ -305,7 +308,6 @@ int main(int argc, char** argv)
     robot_pos_dir_init = 0.0;
 
     bool reset_flag = false;
-
     ros::spinOnce();
 
     ros::Rate loop_rate(30);
@@ -327,12 +329,15 @@ int main(int argc, char** argv)
                     {
                         case P_INIT:
                             //ROS_INFO("P_INIT");
+                            localization_main->saveDataInitialize();
                             localization_main->strategy_init();
                             m_state = P_LOCALIZATION;
                             break;
                         case P_LOCALIZATION:
                             //ROS_INFO("P_LOCALIZATION");
+                            
                             localization_main->strategy_main();
+                            localization_main->saveData();
                             break;
                     }
                 }
@@ -418,12 +423,12 @@ void Localization_main::strategy_main()
     }
     //FOV_Field = DrawFOV();
     //particlepoint.clear();
-
+    
     robot_pos.x = Robot_Position.pos.pose.x;
     robot_pos.y = Robot_Position.pos.pose.y;
     robot_pos.dir = Robot_Position.pos.angle;
     RobotPos_Publisher.publish(robot_pos);
-
+    
     // tool->Delay(4000);
     //ROS_INFO("distance = %d",Robot_Position.featurepoint[18].dis);
     //ROS_INFO("distance_y = %d",Robot_Position.featurepoint[18].y_dis);
@@ -449,73 +454,26 @@ void Localization_main::strategy_main()
     waitKey(10);
 }
 
-// void Localization_main::strategy_main()
-// {
-//     //imshow("Soccer_Field",Soccer_Field);
-//     if(!observation_data.imagestate)
-//     {
-//         NoLookField(Velocityvalue);
-//         CalcFOVArea_averagepos(Camera_Focus, Image_Top_Length, Image_Bottom_Length, Image_Top_Width_Length, Image_Bottom_Width_Length, Horizontal_Head_Angle);
-//         //imshow("FOV_Field",DrawParticlePoint());
-//         // imshow("RobotPos",DrawRobotPos());
-//     }
-//     else
-//     {
-//         step_count = 0;
-//         if(first_loop_flag)
-//         {
-//             first_loop_flag = false;
-//         }
-//         else
-//         {
-//             KLD_Sampling();
-//             StatePredict(Velocityvalue);
-//         }
-//         CalcFOVArea(Camera_Focus, Image_Top_Length, Image_Bottom_Length, Image_Top_Width_Length, Image_Bottom_Width_Length, Horizontal_Head_Angle);
-//         FindFeaturePoint();
-//         LandMarkMode(Landmarkmode::PARTICLEPIONT);
-//         if(observation_data.scan_line.size() > 0)
-//         {
-//             FindBestParticle(&feature_point_observation_data[0], &Line_observation_data[0]);
-//             CalcFOVArea_averagepos(Camera_Focus, Image_Top_Length, Image_Bottom_Length, Image_Top_Width_Length, Image_Bottom_Width_Length, Horizontal_Head_Angle);
-//             LandMarkMode(Landmarkmode::ROBOT);
-//         }
-//         //observation_data.clear();
-//         //imshow("FOV_Field",DrawParticlePoint());
-//         // namedWindow("ParticlePoint",WINDOW_NORMAL);
-//         // imshow("ParticlePoint",DrawParticlePoint());
-//         // namedWindow("RobotPos",WINDOW_AUTOSIZE);
-//         // imshow("RobotPos",DrawRobotPos());
-//     }
-//     //FOV_Field = DrawFOV();
-//     //particlepoint.clear();
+void Localization_main::saveData()
+{
+	fstream fp;
+    fp.open(filePath.c_str(), std::ios::out | std::ios::app);
 
-//     robot_pos.x = Robot_Position.pos.pose.x;
-//     robot_pos.y = Robot_Position.pos.pose.y;
-//     robot_pos.dir = Robot_Position.pos.angle;
-//     RobotPos_Publisher.publish(robot_pos);
+	fp << std::to_string(Robot_Position.pos.pose.x) + "\t";
+    fp << std::to_string(Robot_Position.pos.pose.y) + "\t";
+	fp << std::to_string(Robot_Position.weight) + "\n";
 
-//     //tool->Delay(4000);
-//     //ROS_INFO("distance = %d",Robot_Position.featurepoint[18].dis);
-//     //ROS_INFO("distance_y = %d",Robot_Position.featurepoint[18].y_dis);
-//     //ROS_INFO("Robot_pos_x = %d",Robot_Position.pos.pose.x);
-//     //ROS_INFO("Robot_pos_y = %d",Robot_Position.pos.pose.y);
+	fp.close();
+}
 
-//     /*ROS_INFO("FOV_Top_Right = %d",Robot_Position.FOV_Top_Right.x);
-//     ROS_INFO("FOV_Top_Right = %d",Robot_Position.FOV_Top_Right.y);
-//     ROS_INFO("FOV_Bottom_Right = %d",Robot_Position.FOV_Bottom_Right.x);
-//     ROS_INFO("FOV_Bottom_Right = %d",Robot_Position.FOV_Bottom_Right.y);
-//     ROS_INFO("FOV_Top_Left = %d",Robot_Position.FOV_Top_Left.x);
-//     ROS_INFO("FOV_Top_Left = %d",Robot_Position.FOV_Top_Left.y);
-//     ROS_INFO("FOV_Bottom_Left = %d",Robot_Position.FOV_Bottom_Left.x);
-//     ROS_INFO("FOV_Bottom_Left = %d",Robot_Position.FOV_Bottom_Left.y);*/
+void Localization_main::saveDataInitialize()
+{
+	fstream fp;
+    fp.open(filePath.c_str(), std::ios::out | std::ios::app);
 
-    
-//     msg_DrawRobotPos = cv_bridge::CvImage(std_msgs::Header(), "bgr8", DrawRobotPos()).toImageMsg();
-//     msg_ParticlePoint = cv_bridge::CvImage(std_msgs::Header(), "bgr8", DrawParticlePoint()).toImageMsg();
+	fp << "Robot_Position X\t";
+    fp << "Robot_Position Y\t";
+	fp << "weight\n";
 
-//     DrawRobotPos_Publisher.publish(msg_DrawRobotPos);
-//     ParticlePoint_Publisher.publish(msg_ParticlePoint);
-//     waitKey(10);
-// }
-
+	fp.close();
+}
