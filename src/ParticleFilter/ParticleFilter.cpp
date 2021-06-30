@@ -23,7 +23,7 @@ ParticleFilter::ParticleFilter()
     // factors = { 0, 0, 0, 0,  0,  0, 0, 0, 0,  0,  0, 0, 0, 0,  0};
     // factors = { 1, 2, 1, 0, 10,  1, 2, 1, 0, 20,  1, 2, 1, 0, 10};
     // factors = { 0, 0, 0, 0, 10,  0, 0, 0, 0, 20,  0, 0, 0, 0, 10};
-    factors = { 0, 0, 0, 50, 5,  0, 0, 0, 50, 5,  0, 0, 0, 10, 5};
+    factors = { -1, 0, 1, 50, 5,  0, 0, 0, 50, 5,  -1, 0, 1, 10, 5};
     
     regions = {Point(0, 1100), Point(0, 800), Point(-180, 180)};
     // posx = init_robot_pos_x;
@@ -426,7 +426,7 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
                     double p = 0.0;
                     linemaxscore = 0.0;
                     
-                    if(particlepoint[i].landmark_list[m].Nearest_point.x > 1100 || particlepoint[i].landmark_list[m].Nearest_point.x < 0 || particlepoint[i].landmark_list[m].Nearest_point.y > 800 || particlepoint[i].landmark_list[m].Nearest_point.y < 0 )
+                    if(particlepoint[i].landmark_list[m].Nearest_point.x > 1100 || particlepoint[i].landmark_list[m].Nearest_point.x <= 0 || particlepoint[i].landmark_list[m].Nearest_point.y > 800 || particlepoint[i].landmark_list[m].Nearest_point.y <= 0 )
                     {
                         count ++;
                         continue;
@@ -502,10 +502,10 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
                             // maxscore += linemaxscore;
                         }                                       
                         // if(round(p) != 0.0)
-                        // {
-                            // ROS_INFO(" expect_Z[%d] = %f %f",m,expect_Z(0),expect_Z(1)*RAD2DEG);    
-                            // ROS_INFO(" z_actual[%d] = %f %f",m,z_actual(0),z_actual(1)*RAD2DEG);    
-                            // ROS_INFO(" p[%d] = %f",m,p);
+                        // // {
+                        //     ROS_INFO(" expect_Z[%d] = %f %f",m,expect_Z(0),expect_Z(1)*RAD2DEG);    
+                        //     ROS_INFO(" z_actual[%d] = %f %f",m,z_actual(0),z_actual(1)*RAD2DEG);    
+                        //     ROS_INFO(" p[%d] = %f",m,p);
                         // }        
                     }
 
@@ -517,7 +517,7 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
                 //     likehoodtmp += 1.0;
                 // }
                 
-                ROS_INFO(" maxscore[%d] = %f",ID,maxscore);
+                // ROS_INFO(" maxscore[%d] = %f",ID,maxscore);
                 
                 likehoodtmp += maxscore;
                 // ROS_INFO("particlepoint[%d].wfactors = %f",i,particlepoint[i].wfactors);           
@@ -526,16 +526,16 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
             // ROS_INFO("--------------------------");
             
             // particlepoint[i].weight *= likehoodtmp;
-            if(likehoodtmp == 0.0)
-            {
-                Lineweight = -0.4;
-            }else{
+            // if(likehoodtmp == 0.0)
+            // {
+            //     Lineweight = -0.2;
+            // }else{
                 Lineweight *= (likehoodtmp);
-            }
+            // }
             
             // // weight_avg = weight_avg + particlepoint[i].weight;
             // particlepoint[i].weight = particlepoint[i].weight * likehoodtmp;
-            ROS_INFO("Lineweight[%d] = %f",i,Lineweight);  
+            // ROS_INFO("Lineweight[%d] = %f",i,Lineweight);  
             
         }
         factorweight *= exp(fwl);
@@ -692,7 +692,8 @@ void ParticleFilter::CalcFOVArea(int focus, int top, int bottom, int top_width, 
         // particlepoint[i].FOV_Top_Left.x = Frame_Area(particlepoint[i].FOV_Top_Left.x, MAP_LENGTH);
         particlepoint[i].FOV_Top_Left.y = particlepoint[i].pos.pose.y - top_waist_length * sin(left_sight_top_angle * DEG2RAD);
         // particlepoint[i].FOV_Top_Left.y = Frame_Area(particlepoint[i].FOV_Top_Left.y, MAP_WIDTH);
-        
+        // ROS_INFO("-----FOV_Top_Right = %d %d",Robot_Position.FOV_Top_Right.x,Robot_Position.FOV_Top_Right.y); 
+        // ROS_INFO("FOV_Top_Left = %d %d",Robot_Position.FOV_Top_Left.x,Robot_Position.FOV_Top_Left.y); 
         particlepoint[i].FOV_tmp = Point(-1,-1);
         particlepoint[i].FOV_tmp2 = Point(-1,-1);
         Point range = Point(MAP_LENGTH,MAP_WIDTH);
@@ -744,6 +745,8 @@ void ParticleFilter::CalcFOVArea(int focus, int top, int bottom, int top_width, 
                 particlepoint[i].FOV_tmp2 = Point(0,0);
             }
         }
+        // ROS_INFO("======FOV_Top_Right = %d %d",particlepoint[i].FOV_Top_Right.x,particlepoint[i].FOV_Top_Right.y); 
+        // ROS_INFO("FOV_Top_Left = %d %d",particlepoint[i].FOV_Top_Left.x,particlepoint[i].FOV_Top_Left.y);
         // ROS_INFO("Frame_Area_2"); 
         particlepoint[i].FOV_Top_Right = Frame_Area_2(particlepoint[i].FOV_Bottom_Right, particlepoint[i].FOV_Top_Right ,range);
         particlepoint[i].FOV_Top_Left = Frame_Area_2(particlepoint[i].FOV_Bottom_Left, particlepoint[i].FOV_Top_Left ,range);
@@ -751,7 +754,7 @@ void ParticleFilter::CalcFOVArea(int focus, int top, int bottom, int top_width, 
         // ROS_INFO("FOV_Bottom_Right = %d %d",particlepoint[i].FOV_Bottom_Right.x,particlepoint[i].FOV_Bottom_Right.y); 
         // ROS_INFO("FOV_Top_Right = %d %d",particlepoint[i].FOV_Top_Right.x,particlepoint[i].FOV_Top_Right.y); 
         // ROS_INFO("FOV_Top_Left = %d %d",particlepoint[i].FOV_Top_Left.x,particlepoint[i].FOV_Top_Left.y); 
-        // ROS_INFO("FOV_Bottom_Left = %d %d",particlepoint[i].FOV_Bottom_Left.x,particlepoint[i].FOV_Bottom_Left.y);    
+        // ROS_INFO("-----FOV_Bottom_Left = %d %d",particlepoint[i].FOV_Bottom_Left.x,particlepoint[i].FOV_Bottom_Left.y);    
         // ROS_INFO("FOV_corrdinate"); 
         particlepoint[i].FOV_corrdinate[0].x = particlepoint[i].FOV_Top_Left.x;
         particlepoint[i].FOV_corrdinate[0].y = particlepoint[i].FOV_Top_Left.y;
@@ -1123,6 +1126,10 @@ void ParticleFilter::CalcFOVArea_averagepos(int focus, int top, int bottom, int 
 bool ParticleFilter::CheckPointArea(ParticlePoint *tmp, int x, int y, int FOV)
 {
     // ROS_INFO("CheckPointArea");
+    // ROS_INFO("FOV_Bottom_Right = %d %d",tmp->FOV_Bottom_Left.x,tmp->FOV_Bottom_Right.y); 
+    // ROS_INFO("FOV_Top_Right = %d %d",tmp->FOV_Top_Right.x,tmp->FOV_Top_Right.y); 
+    // ROS_INFO("FOV_Top_Left = %d %d",tmp->FOV_Top_Left.x,tmp->FOV_Top_Left.y); 
+    // ROS_INFO("FOV_Bottom_Left = %d %d",tmp->FOV_Bottom_Left.x,tmp->FOV_Bottom_Left.y);    
     if(FOV == 4)
     {
         int a = (tmp->FOV_Top_Left.x - tmp->FOV_Bottom_Left.x) * (y - tmp->FOV_Bottom_Left.y) - (tmp->FOV_Top_Left.y - tmp->FOV_Bottom_Left.y) * (x - tmp->FOV_Bottom_Left.x);
@@ -1246,8 +1253,8 @@ void ParticleFilter::FindFeaturePoint()
                 int x_ = r * Angle_cos[angle_be];
                 int y_ = r * Angle_sin[angle_be];
 
-                int x = Frame_Area(centerx + x_, Soccer_Field.cols);
-                int y = Frame_Area(centery - y_, Soccer_Field.rows);
+                int x = centerx + x_;
+                int y = centery - y_;
                 // ROS_INFO("x = %d y = %d",x,y);
 
                 if(x == 0 || x == (Soccer_Field.cols - 1) || y == 0 || y == (Soccer_Field.rows - 1))
@@ -1257,8 +1264,10 @@ void ParticleFilter::FindFeaturePoint()
                 }
                 else
                 {
+                    // ROS_INFO("CheckPointArea(&particlepoint[i], x, y,FOV_) = %d",CheckPointArea(&particlepoint[i], x, y,FOV_));
                     if(CheckPointArea(&particlepoint[i], x, y,FOV_))
                     { 
+                        // ROS_INFO("================");
                         if(Soccer_Field.data[(y * Soccer_Field.cols + x) * 3 + 0] == 255)
                         {
                             if(scan_tmp.feature_point.size() != 0)
@@ -1273,7 +1282,7 @@ void ParticleFilter::FindFeaturePoint()
                                     tmp.dis = sqrt(pow((x - particlepoint[i].pos.pose.x),2) + pow((y - particlepoint[i].pos.pose.y),2));
                                     tmp.x_dis = abs(x - particlepoint[i].pos.pose.x);
                                     tmp.y_dis = abs(y - particlepoint[i].pos.pose.y);
-                                    // ROS_INFO("scan_tmp.feature_point.size() != 0 tmp = %d %d %d",tmp.x_dis,tmp.y_dis,tmp.dis);
+                                    ROS_INFO("scan_tmp.feature_point.size() != 0 tmp = %d %d %d",tmp.x_dis,tmp.y_dis,tmp.dis);
                                     scan_tmp.feature_point.push_back(tmp);
                                 }
                             }
@@ -1286,7 +1295,7 @@ void ParticleFilter::FindFeaturePoint()
                                 tmp.y_dis = abs(y - particlepoint[i].pos.pose.y);
                                 scan_tmp.feature_point.push_back(tmp);
                             }
-                            // ROS_INFO("scan_tmp.feature_point.size() == 0 tmp = %d %d %d",tmp.x_dis,tmp.y_dis,tmp.dis);
+                            ROS_INFO("scan_tmp.feature_point.size() == 0 tmp = %d %d %d",tmp.x_dis,tmp.y_dis,tmp.dis);
                             find_feature_flag = true;
                         }
                     }
@@ -1304,7 +1313,7 @@ void ParticleFilter::FindFeaturePoint()
                 tmp.y = -1;
                 tmp.dis = -1;
                 scan_tmp.feature_point.push_back(tmp);
-                // ROS_INFO("!find_feature_flag tmp = %d %d %d",tmp.x_dis,tmp.y_dis,tmp.dis);
+                ROS_INFO("!find_feature_flag tmp = %d %d %d",tmp.x,tmp.y,tmp.dis);
 
             }
             particlepoint[i].featurepoint_scan_line.push_back(scan_tmp);

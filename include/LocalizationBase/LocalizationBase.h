@@ -191,6 +191,7 @@ class LocalizationBase
         float normalize_angle_RAD(float phi);
         float normalize_angle_RAD_(float phi);
         float AngleDiff(float phi) ;
+        bool onImage(int x, int y);
 
         LineINF LineInformation(Point A, Point B, Point Bottom_left, Point Bottom_right);
         bool Line_observation_data_flag = true;
