@@ -397,9 +397,9 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
             // particlepoint[i].wfactors = max(min(log(factorweight/particlepoint[i].weight),2.),0.);
         }
         //待修改
+        Lineweight = 1.0/(float)particlepoint_num;
         if(use_lineinformation)
         {
-            Lineweight = 1.0/(float)particlepoint_num;
             double dis_diff = 0.0;
 
             Eigen::Vector2d h;
@@ -517,9 +517,10 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
                 //     likehoodtmp += 1.0;
                 // }
                 
-                // ROS_INFO(" maxscore[%d] = %f",ID,maxscore);
+                ROS_INFO(" maxscore[%d] = %f",ID,maxscore);
                 
                 likehoodtmp += maxscore;
+                ROS_INFO(" likehoodtmp = %f",likehoodtmp);
                 // ROS_INFO("particlepoint[%d].wfactors = %f",i,particlepoint[i].wfactors);           
             
             }
@@ -530,19 +531,19 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
             // {
             //     Lineweight = -0.2;
             // }else{
-                Lineweight *= (likehoodtmp);
+                Lineweight = (0.001) * likehoodtmp;
             // }
             
             // // weight_avg = weight_avg + particlepoint[i].weight;
             // particlepoint[i].weight = particlepoint[i].weight * likehoodtmp;
-            // ROS_INFO("Lineweight[%d] = %f",i,Lineweight);  
+            ROS_INFO("Lineweight[%d] = %f",i,Lineweight);  
             
         }
         factorweight *= exp(fwl);
         // ROS_INFO("----factorweight[%d] = %f----",i,factorweight);
         // ROS_INFO("=====particlepoint[%d].weight = %f=====",i,1.0-particlepoint[i].weight);
-        
-        particlepoint[i].weight -= Lineweight;
+        if()
+        particlepoint[i].weight = particlepoint[i].weight - Lineweight;
         if(particlepoint[i].weight == 0.0)
         {
             particlepoint[i].weight = 0.95;
@@ -1282,7 +1283,7 @@ void ParticleFilter::FindFeaturePoint()
                                     tmp.dis = sqrt(pow((x - particlepoint[i].pos.pose.x),2) + pow((y - particlepoint[i].pos.pose.y),2));
                                     tmp.x_dis = abs(x - particlepoint[i].pos.pose.x);
                                     tmp.y_dis = abs(y - particlepoint[i].pos.pose.y);
-                                    ROS_INFO("scan_tmp.feature_point.size() != 0 tmp = %d %d %d",tmp.x_dis,tmp.y_dis,tmp.dis);
+                                    // ROS_INFO("scan_tmp.feature_point.size() != 0 tmp = %d %d %d",tmp.x_dis,tmp.y_dis,tmp.dis);
                                     scan_tmp.feature_point.push_back(tmp);
                                 }
                             }
@@ -1295,7 +1296,7 @@ void ParticleFilter::FindFeaturePoint()
                                 tmp.y_dis = abs(y - particlepoint[i].pos.pose.y);
                                 scan_tmp.feature_point.push_back(tmp);
                             }
-                            ROS_INFO("scan_tmp.feature_point.size() == 0 tmp = %d %d %d",tmp.x_dis,tmp.y_dis,tmp.dis);
+                            // ROS_INFO("scan_tmp.feature_point.size() == 0 tmp = %d %d %d",tmp.x_dis,tmp.y_dis,tmp.dis);
                             find_feature_flag = true;
                         }
                     }
@@ -1313,7 +1314,7 @@ void ParticleFilter::FindFeaturePoint()
                 tmp.y = -1;
                 tmp.dis = -1;
                 scan_tmp.feature_point.push_back(tmp);
-                ROS_INFO("!find_feature_flag tmp = %d %d %d",tmp.x,tmp.y,tmp.dis);
+                // ROS_INFO("!find_feature_flag tmp = %d %d %d",tmp.x,tmp.y,tmp.dis);
 
             }
             particlepoint[i].featurepoint_scan_line.push_back(scan_tmp);

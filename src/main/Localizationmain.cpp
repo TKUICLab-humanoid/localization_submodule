@@ -43,7 +43,7 @@ Localization_main::Localization_main(ros::NodeHandle &nh)
     Velocity_value.moving = 1;
     Velocity_value.dt = 0.0;
     loop_cnt_vector.clear();
-    filePath = ros::package::getPath("localization") + "/Parameter/move_FL.csv";
+    filePath = ros::package::getPath("localization") + "/Parameter/point6_FL.csv";
 
 }
 Localization_main::~Localization_main()
