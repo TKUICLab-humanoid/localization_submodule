@@ -23,14 +23,14 @@ ParticleFilter::ParticleFilter()
     // factors = { 0, 0, 0, 0,  0,  0, 0, 0, 0,  0,  0, 0, 0, 0,  0};
     // factors = { 1, 2, 1, 0, 10,  1, 2, 1, 0, 20,  1, 2, 1, 0, 10};
     // factors = { 0, 0, 0, 0, 10,  0, 0, 0, 0, 20,  0, 0, 0, 0, 10};
-    factors = { -1, 0, 1, 50, 5,  0, 0, 0, 50, 5,  -1, 0, 1, 10, 5};
+    factors = { 0, 0, 0, 50, 5,  0, 0, 0, 50, 5,  0, 0, 0, 10, 5};
     
     regions = {Point(0, 1100), Point(0, 800), Point(-180, 180)};
     // posx = init_robot_pos_x;
     // posy = init_robot_pos_y;
     rotation = init_robot_pos_dir;
     total_weight = 0.0;
-    R << 0.01, 0, 0, 0.001;
+    R << 0.05, 0, 0, 0.001;
     //////////////////KLD//////////////////
     min_particlepoint_num = 50;
     kld_err = 0.45;             //defalut 0.05
@@ -409,7 +409,7 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
                 double maxscore = 0.0;
                 double linemaxscore = 0.0;
                 int ID = 0;
-                // ROS_INFO("Line_observation_data [%d] = %f %f",j,(*(Line_observation_data + j)).distance,normalize_angle_RAD((*(Line_observation_data + j)).Line_theta));
+                ROS_INFO("Line_observation_data [%d] = %f %f",j,(*(Line_observation_data + j)).distance,normalize_angle_RAD((*(Line_observation_data + j)).Line_theta));
                 // if((*(Line_observation_data + j)).Line_length <= 0.5)
                 // {
                 //     x --;
@@ -460,8 +460,11 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
                         Eigen::Matrix2d I = Eigen::Matrix2d::Identity();
                         Eigen::Vector2d z_diff = z_actual - expect_Z;
                         z_diff(1) = AngleDiff(z_diff(1));
-                        double p = exp(-0.5*z_diff.transpose()*Z.inverse()*z_diff)/sqrt(2 * M_PI * Z.determinant());
-                        // ROS_INFO(" p = %f",p);
+                        ROS_INFO(" expect_Z = %f %f",expect_Z(0),expect_Z(1));
+                        ROS_INFO(" z_diff = %f %f",z_diff(0),z_diff(1));
+                        // ROS_INFO("Z = %f %f %f %f",Z(0),Z(1),Z(2),Z(3));
+                        p = exp(-0.5*z_diff.transpose()*Z.inverse()*z_diff)/sqrt(2 * M_PI * Z.determinant());
+                        ROS_INFO(" p = %f",p);
                         // ROS_INFO("true");
                         
                         if(particlepoint[i].landmark_list[m].Nearest_point != Point(0,0) && first_loop_flag)
@@ -471,7 +474,7 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
                             ID = m;
                         }
 
-                        if(maxscore < p && !first_loop_flag)
+                        if(maxscore < p && first_loop_flag == false)
                         {
                             maxscore = p;
                             ID = m; 
