@@ -96,6 +96,7 @@ void Localization_main::GetObservationDataFunction(const tku_msgs::ObservationDa
         lineinf.distance = msg.landmark[i].relative_distance ;
         lineinf.Nearest_point = Point((int)msg.landmark[i].Nearest_point.x,(int)msg.landmark[i].Nearest_point.y);
         Line_observation_data.push_back(lineinf);
+        // ROS_INFO("Line_observation_data [%d] = %f %f",i,lineinf.distance,normalize_angle_RAD(lineinf.Line_theta));
     }
     Line_observation_data_Size = Line_observation_data.size();
     

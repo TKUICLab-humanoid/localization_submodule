@@ -30,7 +30,7 @@ ParticleFilter::ParticleFilter()
     // posy = init_robot_pos_y;
     rotation = init_robot_pos_dir;
     total_weight = 0.0;
-    R << 0.05, 0, 0, 0.001;
+    R << 0.05, 0, 0, 0.01;
     //////////////////KLD//////////////////
     min_particlepoint_num = 50;
     kld_err = 0.45;             //defalut 0.05
@@ -404,11 +404,13 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
             // ROS_INFO("particlepoint[%d].landmark_list = %d",i,particlepoint[i].landmark_list.size());
             // ROS_INFO("Line_observation_data_Size = %d",Line_observation_data_Size);
             int x = Line_observation_data_Size;
+            double maxvalue = 0.0;
+            vector<double> mean_p(16,0);
             for(int j = 0; j < Line_observation_data_Size; j++)
             {
                 double maxscore = 0.0;
                 double linemaxscore = 0.0;
-                int ID = 0;
+                int ID = -1;
                 ROS_INFO("Line_observation_data [%d] = %f %f",j,(*(Line_observation_data + j)).distance,normalize_angle_RAD((*(Line_observation_data + j)).Line_theta));
                 // if((*(Line_observation_data + j)).Line_length <= 0.5)
                 // {
@@ -451,8 +453,6 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
                         Eigen::Matrix2d sig = particlepoint[i].landmark_list[m].sigma;
                         //compute the measurement covariance
                         Eigen::Matrix2d Z   = G * sig * G.transpose() + R;
-                        //calculate the Kalman gain K
-                        Eigen::Matrix2d K = sig * G.transpose() * Z.inverse();
                         //calculat the error between the z and expected Z
                         Eigen::Vector2d z_actual;
                         // z_actual << 0, 0;
@@ -460,11 +460,11 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
                         Eigen::Matrix2d I = Eigen::Matrix2d::Identity();
                         Eigen::Vector2d z_diff = z_actual - expect_Z;
                         z_diff(1) = AngleDiff(z_diff(1));
-                        ROS_INFO(" expect_Z = %f %f",expect_Z(0),expect_Z(1));
-                        ROS_INFO(" z_diff = %f %f",z_diff(0),z_diff(1));
+                        // ROS_INFO(" expect_Z = %f %f",expect_Z(0),expect_Z(1));
+                        // ROS_INFO(" z_diff = %f %f",z_diff(0),z_diff(1));
                         // ROS_INFO("Z = %f %f %f %f",Z(0),Z(1),Z(2),Z(3));
-                        p = exp(-0.5*z_diff.transpose()*Z.inverse()*z_diff)/sqrt(2 * M_PI * Z.determinant());
-                        ROS_INFO(" p = %f",p);
+                        p = exp(-0.5*z_diff.transpose()*Z.inverse()*z_diff)/sqrt(abs(2 * M_PI * Z.determinant()));
+                        // ROS_INFO(" p = %f",p);
                         // ROS_INFO("true");
                         
                         if(particlepoint[i].landmark_list[m].Nearest_point != Point(0,0) && first_loop_flag)
@@ -496,15 +496,35 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
                         }                                           
                     }                                      
                 }
+                if(ID != -1)
+                {
+                    mean_p[ID] = (maxscore + mean_p[ID])/2;
+                }
                 
-                ROS_INFO(" maxscore[%d] = %f",ID,maxscore);
-                likehoodtmp += maxscore;
-                ROS_INFO(" likehoodtmp = %f",likehoodtmp);
+
+                // ROS_INFO(" maxscore[%d] = %f",ID,maxscore);
+                // likehoodtmp += maxscore;
+                // ROS_INFO(" likehoodtmp = %f",likehoodtmp);
                 // ROS_INFO("particlepoint[%d].wfactors = %f",i,particlepoint[i].wfactors);           
-            
+            }
+            double tmp;
+            for(int i = 0; i < mean_p.size();i++)
+            {
+                likehoodtmp += mean_p[i];
+                tmp =  mean_p[i];
+                if(maxvalue < tmp)
+                {
+                    maxvalue = tmp;
+                } 
             }
             // ROS_INFO("--------------------------");
-            Lineweight = (0.001) * likehoodtmp;
+            if(Line_observation_data_Size < 1)
+            {
+                Lineweight = 0.99;
+            }else{
+                Lineweight = 0.99 - (likehoodtmp/(maxvalue*Line_observation_data_Size));
+            }
+            
 
             // particlepoint[i].weight = particlepoint[i].weight * likehoodtmp;
             ROS_INFO("Lineweight[%d] = %f",i,Lineweight);  
@@ -515,10 +535,13 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
         // ROS_INFO("=====particlepoint[%d].weight = %f=====",i,1.0-particlepoint[i].weight);
         if(use_feature_point && use_lineinformation)
         {
-            particlepoint[i].weight = particlepoint[i].weight - Lineweight;
-        }else
+            
+            particlepoint[i].weight = 0.5*(particlepoint[i].weight) + (0.5 * Lineweight);
+        }else if(!use_feature_point && use_lineinformation)
         {
-            particlepoint[i].weight = 1.0 - Lineweight;
+            particlepoint[i].weight = Lineweight;
+        }else{
+            particlepoint[i].weight = particlepoint[i].weight;
         }
         
         if(particlepoint[i].weight == 0.0)
