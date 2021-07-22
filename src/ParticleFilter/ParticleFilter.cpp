@@ -48,7 +48,7 @@ ParticleFilter::ParticleFilter()
     localization_flag = true;
     find_best_flag = true;
     use_feature_point = true;
-    use_lineinformation = true;
+    use_lineinformation = false;
     SigmaIMU = 5;
 
     AngleLUT();
@@ -534,8 +534,7 @@ void ParticleFilter::FindBestParticle(scan_line *feature_point_observation_data,
         // ROS_INFO("----factorweight[%d] = %f----",i,factorweight);
         // ROS_INFO("=====particlepoint[%d].weight = %f=====",i,1.0-particlepoint[i].weight);
         if(use_feature_point && use_lineinformation)
-        {
-            
+        {           
             particlepoint[i].weight = 0.5*(particlepoint[i].weight) + (0.5 * Lineweight);
         }else if(!use_feature_point && use_lineinformation)
         {
