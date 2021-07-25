@@ -6,8 +6,8 @@ ParticleFilter::ParticleFilter()
     particlepoint_num = PARTICLNUM;
     excellent_particle_num = EXCELLENTPARTICLNUM;
 
-    Robot_Position.pos.pose.x = 750; //830  700
-    Robot_Position.pos.pose.y = 213; //640  370
+    Robot_Position.pos.pose.x = 621; //830  700
+    Robot_Position.pos.pose.y = 506; //640  370
     Robot_Position.pos.angle = 0.0;
 
     continuous_x = 0;

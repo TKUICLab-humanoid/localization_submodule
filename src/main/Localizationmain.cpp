@@ -303,8 +303,8 @@ int main(int argc, char** argv)
 	Localization_main *localization_main;
     localization_main = nullptr;
     //set the robot position
-    robot_pos_x_init = 750; 
-    robot_pos_y_init = 213;
+    robot_pos_x_init = 621; 
+    robot_pos_y_init = 506;
     robot_pos_dir_init = 0.0;
 
     bool reset_flag = false;
