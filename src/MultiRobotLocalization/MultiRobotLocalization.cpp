@@ -665,21 +665,34 @@ void MultiRobotLocalization::transmitRoboCupInfo()
 
 void MultiRobotLocalization::saveData()
 {
-	fstream fp;
-    fp.open(filePath.c_str(), std::ios::out | std::ios::app);
+	if(robotCupInfo->characterInfo->callBackTimer[StrE::robot[(int)ERobot::robot1]].getTimeMs() < 1000000)
+	{
+		loopTimes += 1;
+		ROS_INFO("loopTimes: %d", loopTimes);
 
-	fp << std::to_string(loopTimes) + "\t";
-	fp << std::to_string(itMyself->second->weight) + "\t";
-	fp << std::to_string(robotCupInfo->characterInfo->callBackTimer[itMyself->second->which_robot].getTimeMs()) + "\n";
+		if(loopTimes <= 1000)
+		{	
+			fstream fp;
+			fp.open(filePath.c_str(), std::ios::out | std::ios::app);
 
-	fp.close();
+			fp << std::to_string(loopTimes) + "\t";
+			// fp << std::to_string(itMyself->second->weight) + "\t";
+			fp << std::to_string(robotCupInfo->characterInfo->callBackTimer[StrE::robot[(int)ERobot::robot1]].getTimeMs()) + "\n";
+
+			fp.close();
+		}
+	}
 }
 
 void MultiRobotLocalization::publishPosition()
 {
 	tku_msgs::RobotPos robotPosition;
 	tku_msgs::SoccerPos soccerPosition;
-
+	
+	// robotPosition.x = itMyself->second->partner[StrE::robot[0]].global.x_pos;
+	// robotPosition.y = itMyself->second->partner[StrE::robot[0]].global.y_pos;
+	// robotPosition.dir = itMyself->second->partner[StrE::robot[0]].global.theta;
+	// RobotPos_Publisher.publish(robotPosition);
 	for(int i = 0; i < 4; i++)
 	{
 		robotPosition.number = i;
@@ -782,8 +795,8 @@ void MultiRobotLocalization::saveDataInitialize()
     fp.open(filePath.c_str(), std::ios::out | std::ios::trunc);
 
 	fp << "loopTimes\t";
-	fp << "callBackTimer\t";
-	fp << "weight\n";
+	// fp << "weight\t";
+	fp << "callBackTimer(ms)\n";
 
 	fp.close();
 }
@@ -817,7 +830,9 @@ MultiRobotLocalization::MultiRobotLocalization(ros::NodeHandle &nh)
 	
 	goalDataInitialize();
 
-	filePath = ros::package::getPath("localization") + "/Parameter/SaveData.csv";
+	loopTimes = 0;
+	
+	filePath = ros::package::getPath("localization") + "/Parameter/SaveROS2Data_dynamic_robot2.csv";
 	saveDataInitialize();
 
 	itMyself = robotCupInfo->characterInfo->who.find("myself");

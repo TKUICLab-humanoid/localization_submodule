@@ -356,7 +356,10 @@ void Localization_main::strategy_main()
     //FOV_Filed = DrawFOV();
     //particlepoint.clear();
 
-    ROS_INFO("localization_pos.weight:%f", 1 - Robot_Position.weight);
+    ROS_INFO("Robot_Position.postion.X: %d", Robot_Position.postion.X);
+    ROS_INFO("Robot_Position.postion.Y: %d", Robot_Position.postion.Y);
+    ROS_INFO("Robot_Position.angle: %f", Robot_Position.angle);
+    ROS_INFO("localization_pos.weight: %f", 1 - Robot_Position.weight);
 
     localization_pos.x = Robot_Position.postion.X;
     localization_pos.y = Robot_Position.postion.Y;
